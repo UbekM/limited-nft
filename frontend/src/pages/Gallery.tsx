@@ -7,10 +7,9 @@ import styled from "@emotion/styled";
 import { keyframes } from "@emotion/react";
 import Navigation from "../components/Navigation";
 import NFTCard from "../components/NFTCard";
-import { CONTRACT_ADDRESS, CONTRACT_ABI } from "../constants/contract";
+import { useNFT } from "../context/NFTContext";
 
-const METADATA_CID =
-  "bafybeid2hl6swcwn3nwxrthmfthxi3qivkuzajzcx5qaqgt7jauhor5wqm";
+const METADATA_CID = "QmZbWNKJPAjxXuNFSEaksCJVd1M6DaKQViJBYPK2BdpDEP";
 
 // Animations
 const fadeIn = keyframes`
@@ -35,12 +34,6 @@ const pulse = keyframes`
     transform: scale(1);
   }
 `;
-
-type NFTMetadata = {
-  name: string;
-  description: string;
-  image: string;
-};
 
 type EthereumRequestMethod =
   | "eth_requestAccounts"
@@ -83,11 +76,23 @@ declare global {
   }
 }
 
+const PlaceholderImage = styled.div<{ text: string; gradient: string }>`
+  width: 100%;
+  aspect-ratio: 1;
+  background: ${(props) => props.gradient};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 500;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+`;
+
 export default function Gallery() {
   const [searchParams] = useSearchParams();
-  const [nfts, setNfts] = useState<NFTMetadata[]>([]);
-  const [mintedNFTs, setMintedNFTs] = useState<Set<number>>(new Set());
-  const [contract, setContract] = useState<ethers.Contract | null>(null);
+  const { nfts, mintedNFTs, isLoading, contract, checkIfMinted } = useNFT();
   const [account, setAccount] = useState<string | null>(null);
   const [minting, setMinting] = useState(false);
   const [selectedNFT, setSelectedNFT] = useState<number | null>(null);
@@ -100,64 +105,6 @@ export default function Gallery() {
     }
   }, [showMintModal, nfts]);
 
-  useEffect(() => {
-    const loadNFTs = async () => {
-      const items: NFTMetadata[] = [];
-      for (let i = 1; i <= 100; i++) {
-        try {
-          const res = await fetch(
-            `https://ipfs.io/ipfs/${METADATA_CID}/metadata_${i}.json`
-          );
-          const json = await res.json();
-          items.push(json);
-        } catch (err) {
-          console.error(`Failed to fetch metadata for NFT ${i}`, err);
-        }
-      }
-      setNfts(items);
-    };
-
-    loadNFTs();
-  }, []);
-
-  // Update error parameter in checkIfMinted
-  const checkIfMinted = async (tokenId: number) => {
-    if (!contract) return false;
-    try {
-      const owner = await contract.ownerOf(tokenId);
-      return owner !== ethers.ZeroAddress;
-    } catch (_err) {
-      // If ownerOf throws, token doesn't exist (not minted)
-      return false;
-    }
-  };
-
-  // Add function to load minted status for all NFTs
-  const loadMintedStatus = async () => {
-    if (!contract) return;
-    const minted = new Set<number>();
-
-    for (let i = 1; i <= 100; i++) {
-      try {
-        const isMinted = await checkIfMinted(i);
-        if (isMinted) {
-          minted.add(i);
-        }
-      } catch (err) {
-        console.error(`Error checking mint status for NFT ${i}:`, err);
-      }
-    }
-
-    setMintedNFTs(minted);
-  };
-
-  // Update useEffect to load minted status when contract is available
-  useEffect(() => {
-    if (contract) {
-      loadMintedStatus();
-    }
-  }, [contract]);
-
   const connectWallet = async () => {
     if (!window.ethereum) {
       alert("MetaMask not found. Please install it.");
@@ -169,16 +116,7 @@ export default function Gallery() {
       await browserProvider.send("eth_requestAccounts", []);
       const signer = await browserProvider.getSigner();
       const address = await signer.getAddress();
-
-      const contractInstance = new ethers.Contract(
-        CONTRACT_ADDRESS,
-        CONTRACT_ABI,
-        signer
-      );
-
-      setContract(contractInstance);
       setAccount(address);
-      await loadMintedStatus(); // Load minted status after connecting
     } catch (err) {
       console.error("Error connecting wallet:", err);
       alert("Failed to connect wallet. See console for details.");
@@ -191,7 +129,9 @@ export default function Gallery() {
       return;
     }
 
-    if (mintedNFTs.has(tokenId)) {
+    // Double check minted status before proceeding
+    const isMinted = await checkIfMinted(tokenId);
+    if (isMinted) {
       alert("This NFT has already been minted.");
       return;
     }
@@ -201,9 +141,17 @@ export default function Gallery() {
       const tokenURI = `ipfs://${METADATA_CID}/metadata_${tokenId}.json`;
       const tx = await contract.mintNFT(account, tokenURI);
       console.log("Minting tx:", tx.hash);
-      setMintedNFTs((prev) => new Set([...prev, tokenId]));
-      alert(`NFT #${tokenId} minted successfully!`);
-      setSelectedNFT(null);
+      const receipt = await tx.wait();
+
+      // Verify the mint was successful
+      if (receipt.status === 1) {
+        alert(`NFT #${tokenId} minted successfully!`);
+        setSelectedNFT(null);
+        // Reload NFTs to update minted status
+        window.location.reload();
+      } else {
+        throw new Error("Transaction failed");
+      }
     } catch (err) {
       console.error("Mint failed:", err);
       alert("Minting failed. See console.");
@@ -233,33 +181,47 @@ export default function Gallery() {
           </GalleryHeader>
 
           <GalleryGrid>
-            {nfts.map((nft, idx) => {
-              const tokenId = idx + 1;
-              const isMinted = mintedNFTs.has(tokenId);
-
-              return (
-                <AnimatedNFTCard
-                  key={idx}
-                  style={{ "--index": idx } as React.CSSProperties}
-                >
-                  <NFTCard id={tokenId} metadata={nft} />
-                  <MintButton
-                    onClick={() => !isMinted && setSelectedNFT(tokenId)}
-                    disabled={minting || isMinted}
+            {isLoading
+              ? // Show loading placeholders
+                Array.from({ length: 12 }).map((_, idx) => (
+                  <AnimatedNFTCard
+                    key={`loading-${idx}`}
+                    style={{ "--index": idx } as React.CSSProperties}
                   >
-                    {minting && selectedNFT === tokenId
-                      ? "Minting..."
-                      : isMinted
-                      ? "Already Minted"
-                      : `Mint #${tokenId}`}
-                  </MintButton>
-                </AnimatedNFTCard>
-              );
-            })}
+                    <PlaceholderImage
+                      text="Loading..."
+                      gradient="linear-gradient(135deg, #666 0%, #444 100%)"
+                    />
+                    <MintButton disabled>Loading...</MintButton>
+                  </AnimatedNFTCard>
+                ))
+              : nfts.map((nft, idx) => {
+                  const tokenId = idx + 1;
+                  const isMinted = mintedNFTs.has(tokenId);
+
+                  return (
+                    <AnimatedNFTCard
+                      key={idx}
+                      style={{ "--index": idx } as React.CSSProperties}
+                    >
+                      <NFTCard id={tokenId} metadata={nft} />
+                      <MintButton
+                        onClick={() => !isMinted && setSelectedNFT(tokenId)}
+                        disabled={minting || isMinted}
+                      >
+                        {minting && selectedNFT === tokenId
+                          ? "Minting..."
+                          : isMinted
+                          ? "Already Minted"
+                          : `Mint #${tokenId}`}
+                      </MintButton>
+                    </AnimatedNFTCard>
+                  );
+                })}
           </GalleryGrid>
         </GalleryContent>
 
-        {selectedNFT && !mintedNFTs.has(selectedNFT) && (
+        {selectedNFT && !mintedNFTs.has(selectedNFT) && !isLoading && (
           <MintModal>
             <ModalContent>
               <ModalTitle>Mint NFT #{selectedNFT}</ModalTitle>
@@ -437,12 +399,17 @@ const AnimatedNFTCard = styled.div`
 `;
 
 const MintButton = styled.button`
-  background: ${(props) =>
-    props.disabled
-      ? props.children === "Already Minted"
+  background: ${(props) => {
+    if (props.children === "Loading...") {
+      return "linear-gradient(135deg, #666 0%, #444 100%)";
+    }
+    if (props.disabled) {
+      return props.children === "Already Minted"
         ? "linear-gradient(135deg, #666 0%, #444 100%)"
-        : "linear-gradient(135deg, #4caf50 0%, #45a049 100%)"
-      : "linear-gradient(135deg, #4caf50 0%, #45a049 100%)"};
+        : "linear-gradient(135deg, #4caf50 0%, #45a049 100%)";
+    }
+    return "linear-gradient(135deg, #4caf50 0%, #45a049 100%)";
+  }};
   color: white;
   border: none;
   padding: 12px;
