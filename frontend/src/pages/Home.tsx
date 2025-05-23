@@ -10,9 +10,9 @@ const Home: React.FC = () => {
   return (
     <div className="min-h-screen min-w-screen bg-dark text-white">
       <Navigation />
-      
+
       {/* Hero Section */}
-      <section className="relative min-h-[90vh] flex items-center justify-center px-4 py-20 md:py-32 overflow-hidden">
+      <section className="relative min-h-[90vh] min-w-[100vw] flex items-center justify-center px-4 py-20 md:py-32 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(76,175,80,0.1),transparent_50%)]" />
         <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -25,18 +25,19 @@ const Home: React.FC = () => {
                 Collection
               </h1>
               <p className="text-lg md:text-xl text-text-secondary max-w-2xl mx-auto lg:mx-0">
-                Discover and collect unique digital art pieces from our exclusive collection. 
-                Each NFT is a one-of-a-kind masterpiece waiting to be claimed.
+                Discover and collect unique digital art pieces from our
+                exclusive collection. Each NFT is a one-of-a-kind masterpiece
+                waiting to be claimed.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <Link 
-                  to="/gallery" 
+                <Link
+                  to="/gallery"
                   className="inline-flex items-center justify-center px-6 py-3 rounded-lg font-medium bg-primary text-white hover:bg-primary-hover hover:-translate-y-0.5 transition-all duration-200"
                 >
                   Explore Gallery
                 </Link>
-                <Link 
-                  to="/gallery?mint=true" 
+                <Link
+                  to="/gallery?mint=true"
                   className="inline-flex items-center justify-center px-6 py-3 rounded-lg font-medium bg-dark-surface text-white border border-white/10 hover:bg-dark-surface-hover hover:border-primary transition-all duration-200"
                 >
                   Mint Now
@@ -44,16 +45,28 @@ const Home: React.FC = () => {
               </div>
               <div className="grid grid-cols-3 gap-8 pt-8">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-primary mb-2">100</div>
-                  <div className="text-sm text-text-secondary uppercase tracking-wider">Total NFTs</div>
+                  <div className="text-2xl font-bold text-primary mb-2">
+                    100
+                  </div>
+                  <div className="text-sm text-text-secondary uppercase tracking-wider">
+                    Total NFTs
+                  </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-primary mb-2">0.01</div>
-                  <div className="text-sm text-text-secondary uppercase tracking-wider">Mint Price</div>
+                  <div className="text-2xl font-bold text-primary mb-2">
+                    0.01
+                  </div>
+                  <div className="text-sm text-text-secondary uppercase tracking-wider">
+                    Mint Price
+                  </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-primary mb-2">Unique</div>
-                  <div className="text-sm text-text-secondary uppercase tracking-wider">Art Style</div>
+                  <div className="text-2xl font-bold text-primary mb-2">
+                    Unique
+                  </div>
+                  <div className="text-sm text-text-secondary uppercase tracking-wider">
+                    Art Style
+                  </div>
                 </div>
               </div>
             </div>
@@ -97,26 +110,30 @@ const Home: React.FC = () => {
               {
                 icon: "🎨",
                 title: "Unique Art",
-                description: "Each NFT is a unique piece of digital art, created with love and attention to detail.",
+                description:
+                  "Each NFT is a unique piece of digital art, created with love and attention to detail.",
               },
               {
                 icon: "🔒",
                 title: "Secure",
-                description: "Built on Ethereum blockchain, ensuring security and authenticity of your digital assets.",
+                description:
+                  "Built on Ethereum blockchain, ensuring security and authenticity of your digital assets.",
               },
               {
                 icon: "💎",
                 title: "Limited Edition",
-                description: "Only 100 NFTs available, making each piece a rare and valuable collectible.",
+                description:
+                  "Only 100 NFTs available, making each piece a rare and valuable collectible.",
               },
               {
                 icon: "🚀",
                 title: "Easy to Mint",
-                description: "Simple and intuitive minting process. Get your NFT in just a few clicks.",
+                description:
+                  "Simple and intuitive minting process. Get your NFT in just a few clicks.",
               },
             ].map((feature, index) => (
-              <div 
-                key={index} 
+              <div
+                key={index}
                 className="bg-dark-surface rounded-xl border border-white/10 p-8 transition-all duration-200 hover:border-primary hover:-translate-y-0.5"
               >
                 <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary to-primary-hover flex items-center justify-center text-3xl mb-6">
@@ -140,17 +157,20 @@ const Home: React.FC = () => {
             {[
               {
                 title: "Connect Wallet",
-                description: "Connect your Ethereum wallet to get started with minting.",
+                description:
+                  "Connect your Ethereum wallet to get started with minting.",
                 image: "Connect Wallet",
               },
               {
                 title: "Choose NFT",
-                description: "Browse our gallery and select your favorite NFT to mint.",
+                description:
+                  "Browse our gallery and select your favorite NFT to mint.",
                 image: "Choose NFT",
               },
               {
                 title: "Mint & Own",
-                description: "Complete the minting process and become the proud owner of your NFT.",
+                description:
+                  "Complete the minting process and become the proud owner of your NFT.",
                 image: "Mint & Own",
               },
             ].map((step, index) => (
@@ -182,10 +202,11 @@ const Home: React.FC = () => {
               Ready to Start Your NFT Journey?
             </h2>
             <p className="text-lg text-text-secondary">
-              Join our community of collectors and artists. Mint your first NFT today!
+              Join our community of collectors and artists. Mint your first NFT
+              today!
             </p>
-            <Link 
-              to="/gallery?mint=true" 
+            <Link
+              to="/gallery?mint=true"
               className="inline-flex items-center justify-center px-6 py-3 rounded-lg font-medium bg-primary text-white hover:bg-primary-hover hover:-translate-y-0.5 transition-all duration-200"
             >
               Start Minting
