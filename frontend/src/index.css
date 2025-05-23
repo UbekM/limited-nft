@@ -1,3 +1,37 @@
+/** @format */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-dark text-text-primary font-sans antialiased;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-all duration-200;
+  }
+
+  .btn-primary {
+    @apply btn bg-primary text-white hover:bg-primary-hover hover:-translate-y-0.5;
+  }
+
+  .btn-secondary {
+    @apply btn bg-dark-surface text-text-primary border border-white/10 hover:bg-dark-surface-hover hover:border-primary;
+  }
+
+  .card {
+    @apply bg-dark-surface rounded-xl border border-white/10 p-8 transition-all duration-200 hover:border-primary hover:-translate-y-0.5;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary to-primary-hover bg-clip-text text-transparent;
+  }
+}
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
