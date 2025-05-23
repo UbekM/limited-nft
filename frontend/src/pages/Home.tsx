@@ -8,7 +8,7 @@ const IPFS_CID = "bafybeiboqfyvwo6fzhjbnudrgfxr565vkz2pgqyencvds33qgfquxbpwmi";
 
 const Home: React.FC = () => {
   return (
-    <div className="min-h-screen bg-dark text-white">
+    <div className="min-h-screen min-w-screen bg-dark text-white">
       <Navigation />
       
       {/* Hero Section */}

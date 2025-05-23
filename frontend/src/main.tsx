@@ -1,7 +1,9 @@
+/** @format */
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
-import App from "./App";
+import App from "./App.tsx";
 import { ContractProvider } from "./context/ContractContext";
 import { WalletProvider } from "./context/WalletContext";
 import "./index.css";
