@@ -73,226 +73,45 @@ type ContractError = {
   data?: string;
 };
 
-// Add error boundary component
-class NFTErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean }
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <CardContainer isMinted={false}>
-          <NFTImageContainer>
-            <div
-              style={{
-                padding: "1rem",
-                textAlign: "center",
-                color: "#ff3b30",
-                fontSize: "0.9rem",
-              }}
-            >
-              Error loading NFT data
-            </div>
-          </NFTImageContainer>
-        </CardContainer>
-      );
-    }
-
-    return this.props.children;
-  }
-}
-
-const GalleryContainer = styled.div`
-  position: relative;
-  min-height: 100vh;
-  min-width: 100vw;
-  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-  color: #ffffff;
-  padding-top: 80px; // Account for fixed navbar
+// Add a new styled component for the loading spinner
+const LoadingSpinner = styled.div`
+  width: 40px;
+  height: 40px;
+  border: 3px solid #4caf50;
+  border-top: 3px solid transparent;
+  border-radius: 50%;
+  animation: ${pulse} 1s infinite linear;
 `;
 
-const GalleryContent = styled.div`
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 2rem;
-
-  @media (max-width: 768px) {
-    padding: 0 1rem;
-  }
-`;
-
-const HeroSection = styled.div`
-  position: relative;
-  width: 100%;
-  min-height: 200px;
-  margin-bottom: 40px;
-  overflow: hidden;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  padding: 2rem;
-`;
-
-const HeroContent = styled.div`
-  position: relative;
-  z-index: 3;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 2rem;
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: 12px;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-`;
-
-const HeroTitle = styled.h1`
-  font-size: 2.5rem;
-  font-weight: 800;
-  color: #ffffff;
-  margin: 0;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: ${fadeIn} 1s ease-out;
-  margin-bottom: 1rem;
-`;
-
-const HeroSubtitle = styled.p`
-  font-size: 1.1rem;
-  color: #e0e0e0;
-  margin: 0 0 2rem;
-  line-height: 1.5;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-  animation: ${fadeIn} 1s ease-out 0.2s backwards;
-`;
-
-const GalleryGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 36px;
-  margin-top: 40px;
-  padding: 0 24px;
-  min-height: 600px; // Ensure consistent height during pagination
-
-  @media (max-width: 1600px) {
-    grid-template-columns: repeat(4, 1fr);
-  }
-
-  @media (max-width: 1400px) {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-  }
-
-  @media (max-width: 1024px) {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-    padding: 0 12px;
-  }
-
-  @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-    max-width: 400px;
-    margin-left: auto;
-    margin-right: auto;
-    gap: 16px;
-    padding: 0 8px;
-  }
-`;
-
-const AnimatedNFTCard = styled.div`
-  animation: ${fadeIn} 1s ease-out;
-  animation-delay: calc(var(--index) * 0.1s);
-  display: flex;
-  flex-direction: column;
-  border-radius: 16px;
-  overflow: hidden;
-  background: rgba(25, 25, 25, 0.98);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-  }
-`;
-
-const MintButton = styled.button<StyledProps & { isMinted: boolean }>`
-  background: ${(props) => {
-    if (props.isMinted) {
-      return "linear-gradient(135deg, #666 0%, #444 100%)";
-    }
-    if (props.disabled) {
-      return "linear-gradient(135deg, #666 0%, #444 100%)";
-    }
-    return "linear-gradient(135deg, #4caf50 0%, #45a049 100%)";
-  }};
-  color: ${(props) => (props.isMinted ? "#999" : "white")};
+// Add missing styled components
+const MintButton = styled.button<{ isMinted?: boolean }>`
+  background: ${(props) =>
+    props.isMinted
+      ? "linear-gradient(135deg, #666 0%, #444 100%)"
+      : "linear-gradient(135deg, #4caf50 0%, #45a049 100%)"};
+  color: white;
   border: none;
-  padding: 12px;
+  padding: 0.75rem 1.5rem;
   font-size: 1rem;
   font-weight: 600;
   border-radius: 8px;
   cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
   transition: all 0.3s ease;
   width: 100%;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   opacity: ${(props) => (props.disabled ? 0.7 : 1)};
 
-  &::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(rgba(255, 255, 255, 0.2), transparent);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
   &:hover:not(:disabled) {
-    transform: ${(props) => (props.isMinted ? "none" : "translateY(-2px)")};
+    transform: translateY(-2px);
     background: ${(props) =>
       props.isMinted
         ? "linear-gradient(135deg, #666 0%, #444 100%)"
         : "linear-gradient(135deg, #45a049 0%, #3d8b40 100%)"};
-    box-shadow: ${(props) =>
-      props.isMinted
-        ? "0 4px 12px rgba(0, 0, 0, 0.2)"
-        : "0 6px 16px rgba(76, 175, 80, 0.4)"};
-
-    &::after {
-      opacity: ${(props) => (props.isMinted ? 0 : 1)};
-    }
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
   }
 
-  @media (max-width: 1024px) {
-    padding: 10px;
-    font-size: 0.95rem;
-  }
-
-  @media (max-width: 768px) {
-    padding: 8px;
-    font-size: 0.9rem;
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
   }
 `;
 
@@ -302,7 +121,7 @@ const MintModal = styled.div`
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.9);
+  background: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -312,78 +131,80 @@ const MintModal = styled.div`
 `;
 
 const ModalContent = styled.div`
-  background: rgba(25, 25, 25, 0.99);
-  padding: 32px;
+  background: rgba(25, 25, 25, 0.98);
   border-radius: 16px;
+  padding: 2rem;
   max-width: 400px;
   width: 90%;
-  text-align: center;
-  animation: ${pulse} 0.3s ease-out;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  animation: ${fadeIn} 0.3s ease-out;
 `;
 
 const ModalTitle = styled.h2`
   font-size: 1.5rem;
   font-weight: 700;
   color: #ffffff;
-  margin-bottom: 16px;
+  margin: 0 0 1rem;
+  text-align: center;
 `;
 
 const ModalText = styled.p`
+  font-size: 1rem;
   color: #e0e0e0;
-  margin-bottom: 24px;
+  margin: 0 0 1.5rem;
+  text-align: center;
   line-height: 1.5;
 `;
 
 const ModalButtons = styled.div`
   display: flex;
-  gap: 12px;
+  gap: 1rem;
   justify-content: center;
 `;
 
 const ModalButton = styled.button<StyledProps>`
-  padding: 12px 24px;
-  font-size: 1rem;
-  font-weight: 600;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: none;
   background: ${(props) =>
     props.secondary
       ? "rgba(255, 255, 255, 0.1)"
       : "linear-gradient(135deg, #4caf50 0%, #45a049 100%)"};
   color: ${(props) => (props.secondary ? "#e0e0e0" : "white")};
-  border: ${(props) =>
-    props.secondary ? "1px solid rgba(255, 255, 255, 0.2)" : "none"};
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border: 1px solid
+    ${(props) =>
+      props.secondary
+        ? "rgba(255, 255, 255, 0.2)"
+        : "rgba(76, 175, 80, 0.3)"};
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
+  transition: all 0.3s ease;
+  min-width: 120px;
 
   &:hover:not(:disabled) {
     transform: translateY(-2px);
-    ${(props) =>
-      !props.secondary &&
-      `
-      background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
-      box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
-    `}
-    ${(props) =>
-      props.secondary &&
-      `
-      background: rgba(255, 255, 255, 0.15);
-      border-color: rgba(255, 255, 255, 0.3);
-    `}
+    background: ${(props) =>
+      props.secondary
+        ? "rgba(255, 255, 255, 0.15)"
+        : "linear-gradient(135deg, #45a049 0%, #3d8b40 100%)"};
+    border-color: ${(props) =>
+      props.secondary
+        ? "rgba(255, 255, 255, 0.3)"
+        : "rgba(76, 175, 80, 0.4)"};
   }
 
   &:disabled {
-    opacity: 0.7;
     cursor: not-allowed;
+    opacity: 0.7;
   }
 `;
 
 // Update the IPFSNFTCard component
 const IPFSNFTCard: React.FC<NFTCardProps> = ({ metadata, isMinted }) => {
+  const [isImageLoading, setIsImageLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
+
   if (!metadata || !metadata.id) {
     return (
       <CardContainer isMinted={false}>
@@ -403,7 +224,6 @@ const IPFSNFTCard: React.FC<NFTCardProps> = ({ metadata, isMinted }) => {
     );
   }
 
-  // Use the image URL from metadata if available, otherwise construct it
   const ipfsImageUrl =
     metadata.image?.replace("ipfs://", "https://ipfs.io/ipfs/") ||
     `https://ipfs.io/ipfs/${IMAGE_IPFS_CID}/image_${metadata.id}.svg`;
@@ -411,6 +231,24 @@ const IPFSNFTCard: React.FC<NFTCardProps> = ({ metadata, isMinted }) => {
   return (
     <CardContainer isMinted={isMinted}>
       <NFTImageContainer>
+        {isImageLoading && !imageError && (
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "rgba(0, 0, 0, 0.2)",
+              zIndex: 1,
+            }}
+          >
+            <LoadingSpinner />
+          </div>
+        )}
         <img
           src={ipfsImageUrl}
           alt={`NFT #${metadata.id}`}
@@ -421,17 +259,51 @@ const IPFSNFTCard: React.FC<NFTCardProps> = ({ metadata, isMinted }) => {
             filter: isMinted ? "grayscale(100%)" : "none",
             padding: "1rem",
             backgroundColor: "rgba(0, 0, 0, 0.2)",
+            opacity: isImageLoading ? 0 : 1,
+            transition: "opacity 0.3s ease-in-out",
           }}
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.style.display = "none";
-            target.parentElement!.innerHTML = `
-              <div style="padding: 1rem; text-align: center; color: #a0a0a0;">
-                Image not available
-              </div>
-            `;
+          onLoad={() => setIsImageLoading(false)}
+          onError={() => {
+            setIsImageLoading(false);
+            setImageError(true);
           }}
         />
+        {imageError && (
+          <div
+            style={{
+              padding: "1rem",
+              textAlign: "center",
+              color: "#a0a0a0",
+              fontSize: "0.9rem",
+              backgroundColor: "rgba(0, 0, 0, 0.2)",
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <div>
+              <div style={{ marginBottom: "0.5rem" }}>Image not available</div>
+              <button
+                onClick={() => {
+                  setImageError(false);
+                  setIsImageLoading(true);
+                }}
+                style={{
+                  background: "rgba(255, 255, 255, 0.1)",
+                  border: "1px solid rgba(255, 255, 255, 0.2)",
+                  padding: "0.5rem 1rem",
+                  borderRadius: "4px",
+                  color: "#fff",
+                  cursor: "pointer",
+                  fontSize: "0.8rem",
+                }}
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        )}
         {isMinted && <MintedOverlay>Minted</MintedOverlay>}
       </NFTImageContainer>
     </CardContainer>
@@ -662,6 +534,193 @@ const DisconnectButton = styled.button`
   }
 `;
 
+const GalleryContainer = styled.div`
+  position: relative;
+  min-height: 100vh;
+  min-width: 100vw;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  color: #ffffff;
+  padding-top: 80px; // Account for fixed navbar
+`;
+
+const GalleryContent = styled.div`
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
+
+  @media (max-width: 768px) {
+    padding: 0 1rem;
+  }
+`;
+
+const HeroSection = styled.div`
+  position: relative;
+  width: 100%;
+  min-height: 200px;
+  margin-bottom: 40px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  padding: 2rem;
+`;
+
+const HeroContent = styled.div`
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+`;
+
+const HeroTitle = styled.h1`
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: ${fadeIn} 1s ease-out;
+  margin-bottom: 1rem;
+`;
+
+const HeroSubtitle = styled.p`
+  font-size: 1.1rem;
+  color: #e0e0e0;
+  margin: 0 0 2rem;
+  line-height: 1.5;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  animation: ${fadeIn} 1s ease-out 0.2s backwards;
+`;
+
+const GalleryGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 36px;
+  margin-top: 40px;
+  padding: 0 24px;
+  min-height: 600px; // Ensure consistent height during pagination
+
+  @media (max-width: 1600px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  @media (max-width: 1400px) {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    padding: 0 12px;
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+    gap: 16px;
+    padding: 0 8px;
+  }
+`;
+
+const AnimatedNFTCard = styled.div`
+  animation: ${fadeIn} 1s ease-out;
+  animation-delay: calc(var(--index) * 0.1s);
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(25, 25, 25, 0.98);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  }
+`;
+
+// Update the NFTErrorBoundary component
+class NFTErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("NFT Error Boundary caught an error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <CardContainer isMinted={false}>
+          <NFTImageContainer>
+            <div
+              style={{
+                padding: "1rem",
+                textAlign: "center",
+                color: "#ff3b30",
+                fontSize: "0.9rem",
+                backgroundColor: "rgba(255, 59, 48, 0.1)",
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "0.5rem",
+              }}
+            >
+              <div>Error loading NFT data</div>
+              <button
+                onClick={() => {
+                  this.setState({ hasError: false, error: null });
+                }}
+                style={{
+                  background: "rgba(255, 255, 255, 0.1)",
+                  border: "1px solid rgba(255, 255, 255, 0.2)",
+                  padding: "0.5rem 1rem",
+                  borderRadius: "4px",
+                  color: "#fff",
+                  cursor: "pointer",
+                  fontSize: "0.8rem",
+                }}
+              >
+                Retry
+              </button>
+            </div>
+          </NFTImageContainer>
+        </CardContainer>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 const Gallery: React.FC = () => {
   const [searchParams] = useSearchParams();
   const {
@@ -766,10 +825,18 @@ const Gallery: React.FC = () => {
       if (!contract) {
         try {
           const provider = new ethers.JsonRpcProvider(
-            import.meta.env.VITE_RPC_URL
+            import.meta.env.VITE_RPC_URL ||
+              "https://eth-sepolia.g.alchemy.com/v2/demo"
           );
+          const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
+
+          if (!contractAddress) {
+            console.warn("Contract address not found in environment variables");
+            return;
+          }
+
           const readOnlyContract = new ethers.Contract(
-            import.meta.env.VITE_CONTRACT_ADDRESS,
+            contractAddress,
             CONTRACT_ABI,
             provider
           );
@@ -787,16 +854,13 @@ const Gallery: React.FC = () => {
                 }
               } catch (error: unknown) {
                 const contractError = error as ContractError;
-                // Handle nonexistent token error gracefully
                 if (
                   contractError?.code === "CALL_EXCEPTION" ||
                   contractError?.message?.includes("ERC721NonexistentToken") ||
                   contractError?.message?.includes("execution reverted")
                 ) {
-                  // Token doesn't exist yet, which is fine
                   console.log(`NFT #${nft.id} not minted yet`);
                 } else {
-                  // Log other errors
                   console.error(`Error checking NFT #${nft.id}:`, error);
                 }
               }
