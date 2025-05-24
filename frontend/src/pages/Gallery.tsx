@@ -10,9 +10,8 @@ import { useWallet } from "../context/WalletContext";
 import { useContract } from "../context/ContractContext";
 import { CONTRACT_ABI } from "../constants/contract";
 
-const IPFS_CID = "bafybeibxopzjrohhlj2xrmijrk75vtmnujanee7tin4ly6ode2mrrhmwxq";
-const IMAGE_IPFS_CID =
-  "bafybeiboqfyvwo6fzhjbnudrgfxr565vkz2pgqyencvds33qgfquxbpwmi";
+const IPFS_CID = import.meta.env.VITE_IPFS_CID;
+const IMAGE_IPFS_CID = import.meta.env.VITE_IMAGE_IPFS_CID;
 
 // Animations
 const fadeIn = keyframes`
@@ -403,15 +402,40 @@ const IPFSNFTCard: React.FC<NFTCardProps> = ({ metadata, isMinted }) => {
     );
   }
 
-  // Use the image URL from metadata if available, otherwise construct it
-  const ipfsImageUrl =
-    metadata.image?.replace("ipfs://", "https://ipfs.io/ipfs/") ||
-    `https://ipfs.io/ipfs/${IMAGE_IPFS_CID}/image_${metadata.id}.svg`;
+  // Use multiple IPFS gateways for better reliability
+  const ipfsGateways = [
+    `https://ipfs.io/ipfs/${IMAGE_IPFS_CID}/image_${metadata.id}.svg`,
+    `https://gateway.pinata.cloud/ipfs/${IMAGE_IPFS_CID}/image_${metadata.id}.svg`,
+    `https://cloudflare-ipfs.com/ipfs/${IMAGE_IPFS_CID}/image_${metadata.id}.svg`,
+    `https://dweb.link/ipfs/${IMAGE_IPFS_CID}/image_${metadata.id}.svg`,
+  ];
+
+  // Use the first gateway by default
+  const [currentGatewayIndex, setCurrentGatewayIndex] = useState(0);
+  const ipfsImageUrl = ipfsGateways[currentGatewayIndex];
+
+  const handleImageError = () => {
+    // Try the next gateway if available
+    if (currentGatewayIndex < ipfsGateways.length - 1) {
+      setCurrentGatewayIndex(currentGatewayIndex + 1);
+    } else {
+      // If all gateways fail, show error
+      const target = document.querySelector(`#nft-image-${metadata.id}`);
+      if (target) {
+        target.innerHTML = `
+          <div style="padding: 1rem; text-align: center; color: #a0a0a0;">
+            Image not available
+          </div>
+        `;
+      }
+    }
+  };
 
   return (
     <CardContainer isMinted={isMinted}>
       <NFTImageContainer>
         <img
+          id={`nft-image-${metadata.id}`}
           src={ipfsImageUrl}
           alt={`NFT #${metadata.id}`}
           style={{
@@ -422,15 +446,7 @@ const IPFSNFTCard: React.FC<NFTCardProps> = ({ metadata, isMinted }) => {
             padding: "1rem",
             backgroundColor: "rgba(0, 0, 0, 0.2)",
           }}
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.style.display = "none";
-            target.parentElement!.innerHTML = `
-              <div style="padding: 1rem; text-align: center; color: #a0a0a0;">
-                Image not available
-              </div>
-            `;
-          }}
+          onError={handleImageError}
         />
         {isMinted && <MintedOverlay>Minted</MintedOverlay>}
       </NFTImageContainer>
@@ -673,7 +689,7 @@ const Gallery: React.FC = () => {
     error: walletError,
   } = useWallet();
   const { contract } = useContract();
-  const [isMinting, setIsMinting] = useState(false);
+  const [mintingNFTId, setMintingNFTId] = useState<number | null>(null);
   const [mintedNFTs, setMintedNFTs] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedNFT, setSelectedNFT] = useState<number | null>(null);
@@ -766,11 +782,10 @@ const Gallery: React.FC = () => {
       if (!contract) {
         try {
           const provider = new ethers.JsonRpcProvider(
-            import.meta.env.VITE_RPC_URL ||
-              "https://eth-sepolia.g.alchemy.com/v2/demo"
+            import.meta.env.VITE_RPC_URL
           );
           const readOnlyContract = new ethers.Contract(
-            import.meta.env.VITE_CONTRACT_ADDRESS || "",
+            import.meta.env.VITE_CONTRACT_ADDRESS,
             CONTRACT_ABI,
             provider
           );
@@ -899,7 +914,7 @@ const Gallery: React.FC = () => {
       return;
     }
 
-    if (isMinting) {
+    if (mintingNFTId !== null) {
       setMintError("Please wait for the current mint to complete.");
       return;
     }
@@ -910,7 +925,7 @@ const Gallery: React.FC = () => {
       return;
     }
 
-    setIsMinting(true);
+    setMintingNFTId(tokenId);
     setMintError(null);
     try {
       const tokenURI = `ipfs://${IPFS_CID}/metadata_${tokenId}.json`;
@@ -951,7 +966,7 @@ const Gallery: React.FC = () => {
         setMintError("Minting failed. Please try again.");
       }
     } finally {
-      setIsMinting(false);
+      setMintingNFTId(null);
     }
   };
 
@@ -1009,12 +1024,14 @@ const Gallery: React.FC = () => {
                     <MintButtonWrapper>
                       <MintButton
                         onClick={() => handleMint(nft.id)}
-                        disabled={isMinting || mintedNFTs.includes(nft.id)}
+                        disabled={
+                          mintingNFTId !== null || mintedNFTs.includes(nft.id)
+                        }
                         isMinted={mintedNFTs.includes(nft.id)}
                       >
                         {mintedNFTs.includes(nft.id)
                           ? "Minted"
-                          : isMinting
+                          : mintingNFTId === nft.id
                           ? "Minting..."
                           : "Mint NFT"}
                       </MintButton>
@@ -1066,9 +1083,9 @@ const Gallery: React.FC = () => {
               <ModalButtons>
                 <ModalButton
                   onClick={() => handleMint(selectedNFT)}
-                  disabled={isMinting}
+                  disabled={mintingNFTId !== null}
                 >
-                  {isMinting ? "Minting..." : "Confirm Mint"}
+                  {mintingNFTId === selectedNFT ? "Minting..." : "Confirm Mint"}
                 </ModalButton>
                 <ModalButton
                   secondary
