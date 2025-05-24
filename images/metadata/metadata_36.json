@@ -1,6 +1,77 @@
 {
-  "name": "Limited NFT #36",
-  "description": "Exclusive NFT from a limited collection of 100 avatars.",
+  "name": "The uncommon White Default Hair #36",
+  "description": "A uncommon avatar with default hair white hair and default eyes. \nThis character wears a default and has a default expression, \nmaking it a unique piece in the Limited NFT collection.",
   "image": "ipfs://bafybeiboqfyvwo6fzhjbnudrgfxr565vkz2pgqyencvds33qgfquxbpwmi/image_36.svg",
-  "attributes": []
+  "attributes": [
+    {
+      "trait_type": "Base Traits",
+      "attributes": [
+        {
+          "trait_type": "hairStyle",
+          "value": "Default Hair",
+          "rarity_weight": 30
+        },
+        {
+          "trait_type": "hairColor",
+          "value": "White",
+          "rarity_weight": 30
+        },
+        {
+          "trait_type": "clothes",
+          "value": "Default",
+          "rarity_weight": 30
+        },
+        {
+          "trait_type": "eyes",
+          "value": "Default",
+          "rarity_weight": 30
+        },
+        {
+          "trait_type": "mouth",
+          "value": "Default",
+          "rarity_weight": 30
+        },
+        {
+          "trait_type": "accessories",
+          "value": "Default",
+          "rarity_weight": 30
+        }
+      ]
+    },
+    {
+      "trait_type": "Visual Characteristics",
+      "attributes": [
+        {
+          "trait_type": "Color Palette",
+          "value": "Light, White, #ff4f6d, #92d9ff, #d6b370, Dark Brown",
+          "colors": [
+            "#f8d25c",
+            "#ffffff",
+            "#ff4f6d",
+            "#92d9ff",
+            "#d6b370",
+            "#4a312c"
+          ],
+          "rarity_weight": 30
+        },
+        {
+          "trait_type": "Style Complexity",
+          "value": "Low",
+          "score": 0.375,
+          "rarity_weight": 30
+        }
+      ]
+    },
+    {
+      "trait_type": "Unique Features",
+      "attributes": [
+        {
+          "trait_type": "Rarity Level",
+          "value": "uncommon",
+          "score": 0.375,
+          "rarity_weight": 30
+        }
+      ]
+    }
+  ]
 }

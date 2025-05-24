@@ -1,6 +1,85 @@
 {
-  "name": "Limited NFT #80",
-  "description": "Exclusive NFT from a limited collection of 100 avatars.",
+  "name": "The uncommon Default Default Hair #80",
+  "description": "A uncommon avatar with default hair default hair and default eyes. \nThis character wears a default and has a default expression, \nmaking it a unique piece in the Limited NFT collection.",
   "image": "ipfs://bafybeiboqfyvwo6fzhjbnudrgfxr565vkz2pgqyencvds33qgfquxbpwmi/image_80.svg",
-  "attributes": []
+  "attributes": [
+    {
+      "trait_type": "Base Traits",
+      "attributes": [
+        {
+          "trait_type": "hairStyle",
+          "value": "Default Hair",
+          "rarity_weight": 30
+        },
+        {
+          "trait_type": "hairColor",
+          "value": "Default",
+          "rarity_weight": 30
+        },
+        {
+          "trait_type": "clothes",
+          "value": "Default",
+          "rarity_weight": 30
+        },
+        {
+          "trait_type": "eyes",
+          "value": "Default",
+          "rarity_weight": 30
+        },
+        {
+          "trait_type": "mouth",
+          "value": "Default",
+          "rarity_weight": 30
+        },
+        {
+          "trait_type": "accessories",
+          "value": "Default",
+          "rarity_weight": 30
+        }
+      ]
+    },
+    {
+      "trait_type": "Visual Characteristics",
+      "attributes": [
+        {
+          "trait_type": "Color Palette",
+          "value": "Brown, #a7ffc4, #ff4f6d, #724133, #5dd362, #42bc53, #4acad3, #fdb599, #f7d30c, #ff7398, Light Gray, #9177ff, Dark Brown, #ffafb9",
+          "colors": [
+            "#614335",
+            "#a7ffc4",
+            "#ff4f6d",
+            "#724133",
+            "#5dd362",
+            "#42bc53",
+            "#4acad3",
+            "#fdb599",
+            "#f7d30c",
+            "#ff7398",
+            "#e6e6e6",
+            "#9177ff",
+            "#4a312c",
+            "#ffafb9"
+          ],
+          "rarity_weight": 30
+        },
+        {
+          "trait_type": "Style Complexity",
+          "value": "Low",
+          "score": 0.2,
+          "rarity_weight": 30
+        }
+      ]
+    },
+    {
+      "trait_type": "Unique Features",
+      "attributes": [
+        {
+          "trait_type": "Rarity Level",
+          "value": "uncommon",
+          "score": 0.2,
+          "rarity_weight": 30
+        }
+      ]
+    }
+  ]
 }

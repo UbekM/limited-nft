@@ -10,7 +10,9 @@ import { useWallet } from "../context/WalletContext";
 import { useContract } from "../context/ContractContext";
 import { CONTRACT_ABI } from "../constants/contract";
 
-const IPFS_CID = "bafybeiboqfyvwo6fzhjbnudrgfxr565vkz2pgqyencvds33qgfquxbpwmi";
+const IPFS_CID = "bafybeibxopzjrohhlj2xrmijrk75vtmnujanee7tin4ly6ode2mrrhmwxq";
+const IMAGE_IPFS_CID =
+  "bafybeiboqfyvwo6fzhjbnudrgfxr565vkz2pgqyencvds33qgfquxbpwmi";
 
 // Animations
 const fadeIn = keyframes`
@@ -77,16 +79,20 @@ declare global {
   }
 }
 
+interface NFTAttribute {
+  trait_type: string;
+  value: string;
+  attributes?: NFTAttribute[];
+  colors?: string[];
+}
+
 interface NFTMetadata {
   id: number;
   name: string;
   description: string;
   image: string;
   price: string;
-  attributes: Array<{
-    trait_type: string;
-    value: string;
-  }>;
+  attributes: NFTAttribute[];
 }
 
 interface StyledProps {
@@ -101,441 +107,59 @@ interface NFTCardProps {
 
 const ITEMS_PER_PAGE = 10;
 
-const Gallery: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const {
-    address,
-    isConnected,
-    isConnecting,
-    connect,
-    disconnect,
-    error: walletError,
-  } = useWallet();
-  const { contract } = useContract();
-  const [isMinting, setIsMinting] = useState(false);
-  const [mintedNFTs, setMintedNFTs] = useState<number[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedNFT, setSelectedNFT] = useState<number | null>(null);
-  const [nfts, setNFTs] = useState<NFTMetadata[]>([]);
-  const [mintError, setMintError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-
-  // Initialize NFT data with IPFS paths
-  useEffect(() => {
-    const initialNFTs: NFTMetadata[] = Array.from({ length: 100 }, (_, i) => ({
-      id: i + 1,
-      name: `Limited NFT #${i + 1}`,
-      description: "Exclusive NFT from a limited collection of 100 avatars.",
-      image: `ipfs://${IPFS_CID}/image_${i + 1}.svg`,
-      price: "0.01",
-      attributes: [
-        { trait_type: "Rarity", value: "Common" },
-        { trait_type: "Edition", value: `${i + 1}/100` },
-      ],
-    }));
-    setNFTs(initialNFTs);
-  }, []);
-
-  // Load NFT metadata from IPFS
-  useEffect(() => {
-    const loadNFTMetadata = async () => {
-      if (nfts.length === 0) return;
-
-      setIsLoading(true);
-      try {
-        const updatedNFTs = await Promise.all(
-          nfts.map(async (nft) => {
-            try {
-              // Fetch metadata from IPFS
-              const response = await fetch(
-                `https://ipfs.io/ipfs/${IPFS_CID}/metadata_${nft.id}.json`
-              );
-
-              // If metadata exists, use it
-              if (response.ok) {
-                const metadata = await response.json();
-                return {
-                  ...nft,
-                  name: metadata.name || nft.name,
-                  description: metadata.description || nft.description,
-                  image: metadata.image || nft.image,
-                  attributes: metadata.attributes || nft.attributes,
-                };
-              }
-
-              // If metadata doesn't exist (404), use fallback data
-              console.log(`Using fallback metadata for NFT #${nft.id}`);
-              return {
-                ...nft,
-                name: `Limited NFT #${nft.id}`,
-                description:
-                  "Exclusive NFT from a limited collection of 100 avatars.",
-                image: `ipfs://${IPFS_CID}/image_${nft.id}.svg`,
-                price: "0.01",
-                attributes: [
-                  { trait_type: "Rarity", value: "Common" },
-                  { trait_type: "Edition", value: `${nft.id}/100` },
-                ],
-              };
-            } catch (error) {
-              // Keep the initial IPFS data if fetch fails
-              console.log(
-                `Error loading NFT #${nft.id} from IPFS, using fallback:`,
-                error
-              );
-              return nft;
-            }
-          })
-        );
-        setNFTs(updatedNFTs);
-      } catch (error) {
-        console.error("Error loading NFT metadata from IPFS:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadNFTMetadata();
-  }, [nfts.length]);
-
-  // Load minted status immediately, regardless of wallet connection
-  useEffect(() => {
-    const loadMintedStatus = async () => {
-      if (!contract) {
-        // If no contract, try to create a read-only provider
-        try {
-          const provider = new ethers.JsonRpcProvider(
-            import.meta.env.VITE_RPC_URL ||
-              "https://eth-sepolia.g.alchemy.com/v2/demo"
-          );
-          const readOnlyContract = new ethers.Contract(
-            import.meta.env.VITE_CONTRACT_ADDRESS || "",
-            CONTRACT_ABI,
-            provider
-          );
-
-          setIsLoading(true);
-          setMintError(null);
-          const minted = new Set<number>();
-
-          try {
-            const checkPromises = nfts.map(async (nft) => {
-              try {
-                const owner = await readOnlyContract.ownerOf(nft.id);
-                if (owner !== ethers.ZeroAddress) {
-                  minted.add(nft.id);
-                }
-              } catch (error) {
-                // NFT not minted yet or contract error
-                console.log(`NFT #${nft.id} not minted or error:`, error);
-              }
-            });
-
-            await Promise.all(checkPromises);
-            setMintedNFTs(Array.from(minted));
-          } catch (error) {
-            console.error("Error loading minted status:", error);
-            setMintError("Failed to load NFT status. Please refresh the page.");
-          } finally {
-            setIsLoading(false);
-          }
-        } catch (error) {
-          console.error("Error creating read-only provider:", error);
-          setIsLoading(false);
-        }
-        return;
-      }
-
-      setIsLoading(true);
-      setMintError(null);
-      const minted = new Set<number>();
-
-      try {
-        const checkPromises = nfts.map(async (nft) => {
-          try {
-            const owner = await contract.ownerOf(nft.id);
-            if (owner !== ethers.ZeroAddress) {
-              minted.add(nft.id);
-            }
-          } catch (error) {
-            // NFT not minted yet or contract error
-            console.log(`NFT #${nft.id} not minted or error:`, error);
-          }
-        });
-
-        await Promise.all(checkPromises);
-        setMintedNFTs(Array.from(minted));
-      } catch (error) {
-        console.error("Error loading minted status:", error);
-        setMintError("Failed to load NFT status. Please refresh the page.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadMintedStatus();
-  }, [contract, nfts]);
-
-  // Auto-show mint modal if mint=true in URL
-  useEffect(() => {
-    if (searchParams.get("mint") === "true" && nfts.length > 0) {
-      setSelectedNFT(1);
-    }
-  }, [searchParams, nfts]);
-
-  // Calculate total pages when NFTs are loaded
-  useEffect(() => {
-    setTotalPages(Math.ceil(nfts.length / ITEMS_PER_PAGE));
-  }, [nfts.length]);
-
-  // Get current page items
-  const getCurrentPageItems = () => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-    return nfts.slice(startIndex, endIndex);
-  };
-
-  // Handle page change with proper type assertion
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    // Scroll to top of gallery with proper type assertion
-    const galleryContent = document.querySelector(
-      ".gallery-content"
-    ) as HTMLElement;
-    if (galleryContent) {
-      window.scrollTo({
-        top: galleryContent.offsetTop,
-        behavior: "smooth",
-      });
-    }
-  };
-
-  const handleMint = async (tokenId: number) => {
-    if (!contract || !address) {
-      setMintError("Please connect your wallet first.");
-      return;
-    }
-
-    if (isMinting) {
-      setMintError("Please wait for the current mint to complete.");
-      return;
-    }
-
-    const isMinted = mintedNFTs.includes(tokenId);
-    if (isMinted) {
-      setMintError("This NFT has already been minted.");
-      return;
-    }
-
-    setIsMinting(true);
-    setMintError(null);
-    try {
-      const tokenURI = `ipfs://${IPFS_CID}/metadata_${tokenId}.json`;
-      const tx = await contract.mintNFT(address, tokenURI);
-      console.log("Minting tx:", tx.hash);
-
-      // Wait for transaction with timeout
-      const receipt = await Promise.race([
-        tx.wait(),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Transaction timeout")), 60000)
-        ),
-      ]);
-
-      if (receipt && receipt.status === 1) {
-        setMintedNFTs((prev) => [...prev, tokenId]);
-        setSelectedNFT(null);
-      } else {
-        throw new Error("Transaction failed");
-      }
-    } catch (error) {
-      console.error("Minting error:", error);
-      if (error instanceof Error) {
-        if (error.message.includes("user rejected")) {
-          setMintError("Transaction was rejected. Please try again.");
-        } else if (error.message.includes("insufficient funds")) {
-          setMintError(
-            "Insufficient funds for minting. Please add ETH to your wallet."
-          );
-        } else if (error.message.includes("Transaction timeout")) {
-          setMintError(
-            "Transaction timed out. Please check your wallet for the transaction status."
-          );
-        } else {
-          setMintError(`Minting failed: ${error.message}`);
-        }
-      } else {
-        setMintError("Minting failed. Please try again.");
-      }
-    } finally {
-      setIsMinting(false);
-    }
-  };
-
-  // Calculate minting progress
-  const totalNFTs = nfts.length;
-  const mintedCount = mintedNFTs.length;
-  const remainingCount = totalNFTs - mintedCount;
-  const mintingProgress = (mintedCount / totalNFTs) * 100;
-
-  return (
-    <>
-      <Navigation />
-      <GalleryContainer>
-        <GalleryContent className="gallery-content">
-          <HeroSection>
-            <HeroContent>
-              <HeroTitle>🎨 Limited NFT Collection</HeroTitle>
-              <HeroSubtitle>
-                Discover and mint unique digital art pieces from our exclusive
-                collection. Each NFT is a one-of-a-kind masterpiece waiting to
-                be claimed.
-              </HeroSubtitle>
-              <MintingProgressContainer>
-                <MintingProgressBar>
-                  <MintingProgressFill
-                    style={{ width: `${mintingProgress}%` }}
-                  />
-                </MintingProgressBar>
-                <MintingStats>
-                  <MintingStat>
-                    <MintingStatLabel>Total NFTs</MintingStatLabel>
-                    <MintingStatValue>{totalNFTs}</MintingStatValue>
-                  </MintingStat>
-                  <MintingStat>
-                    <MintingStatLabel>Minted</MintingStatLabel>
-                    <MintingStatValue>{mintedCount}</MintingStatValue>
-                  </MintingStat>
-                  <MintingStat>
-                    <MintingStatLabel>Remaining</MintingStatLabel>
-                    <MintingStatValue>{remainingCount}</MintingStatValue>
-                  </MintingStat>
-                </MintingStats>
-              </MintingProgressContainer>
-              <WalletSection>
-                {isConnected ? (
-                  <WalletInfo>
-                    <WalletAddress>{address}</WalletAddress>
-                    <WalletStatus>Connected</WalletStatus>
-                    <DisconnectButton onClick={disconnect}>
-                      Disconnect
-                    </DisconnectButton>
-                  </WalletInfo>
-                ) : (
-                  <>
-                    <ConnectButton onClick={connect} disabled={isConnecting}>
-                      {isConnecting ? "Connecting..." : "Connect Wallet"}
-                    </ConnectButton>
-                    {walletError && <ErrorMessage>{walletError}</ErrorMessage>}
-                  </>
-                )}
-              </WalletSection>
-            </HeroContent>
-          </HeroSection>
-
-          {isLoading ? (
-            <LoadingMessage>Loading NFTs...</LoadingMessage>
-          ) : (
-            <>
-              <GalleryGrid>
-                {getCurrentPageItems().map((nft) => (
-                  <AnimatedNFTCard
-                    key={nft.id}
-                    style={
-                      {
-                        "--index": nft.id % 12,
-                        opacity: mintedNFTs.includes(nft.id) ? 0.7 : 1,
-                      } as React.CSSProperties
-                    }
-                  >
-                    <IPFSNFTCard
-                      metadata={nft}
-                      isMinted={mintedNFTs.includes(nft.id)}
-                    />
-                    <MintButton
-                      onClick={() => handleMint(nft.id)}
-                      disabled={isMinting || mintedNFTs.includes(nft.id)}
-                      isMinted={mintedNFTs.includes(nft.id)}
-                    >
-                      {mintedNFTs.includes(nft.id)
-                        ? "Minted"
-                        : isMinting
-                        ? "Minting..."
-                        : "Mint NFT"}
-                    </MintButton>
-                  </AnimatedNFTCard>
-                ))}
-              </GalleryGrid>
-
-              <PaginationContainer>
-                <PaginationButton
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                >
-                  ←
-                </PaginationButton>
-
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                  (page) => (
-                    <PaginationButton
-                      key={page}
-                      onClick={() => handlePageChange(page)}
-                      active={currentPage === page}
-                    >
-                      {page}
-                    </PaginationButton>
-                  )
-                )}
-
-                <PaginationButton
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                >
-                  →
-                </PaginationButton>
-              </PaginationContainer>
-            </>
-          )}
-        </GalleryContent>
-
-        {selectedNFT && !mintedNFTs.includes(selectedNFT) && !isLoading && (
-          <MintModal>
-            <ModalContent>
-              <ModalTitle>Mint NFT #{selectedNFT}</ModalTitle>
-              <ModalText>
-                Are you sure you want to mint this NFT? This action cannot be
-                undone.
-              </ModalText>
-              {mintError && <ErrorMessage>{mintError}</ErrorMessage>}
-              <ModalButtons>
-                <ModalButton
-                  onClick={() => handleMint(selectedNFT)}
-                  disabled={isMinting}
-                >
-                  {isMinting ? "Minting..." : "Confirm Mint"}
-                </ModalButton>
-                <ModalButton
-                  secondary
-                  onClick={() => {
-                    setSelectedNFT(null);
-                    setMintError(null);
-                  }}
-                >
-                  Cancel
-                </ModalButton>
-              </ModalButtons>
-            </ModalContent>
-          </MintModal>
-        )}
-      </GalleryContainer>
-    </>
-  );
+// Add proper error type
+type ContractError = {
+  code?: string;
+  message?: string;
+  data?: string;
 };
 
-export default Gallery;
+// Add error boundary component
+class NFTErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
 
-// Styled Components
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <CardContainer isMinted={false}>
+          <NFTImageContainer>
+            <div
+              style={{
+                padding: "1rem",
+                textAlign: "center",
+                color: "#ff3b30",
+                fontSize: "0.9rem",
+              }}
+            >
+              Error loading NFT data
+            </div>
+          </NFTImageContainer>
+        </CardContainer>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+// Add IPFS gateways
+const IPFS_GATEWAYS = [
+  "https://ipfs.io/ipfs/",
+  "https://gateway.pinata.cloud/ipfs/",
+  "https://cloudflare-ipfs.com/ipfs/",
+  "https://dweb.link/ipfs/",
+];
+
 const GalleryContainer = styled.div`
   position: relative;
   min-height: 100vh;
@@ -549,7 +173,6 @@ const GalleryContent = styled.div`
   max-width: 1400px;
   margin: 0 auto;
   padding: 0 2rem;
-  width: 100%;
 
   @media (max-width: 768px) {
     padding: 0 1rem;
@@ -559,38 +182,13 @@ const GalleryContent = styled.div`
 const HeroSection = styled.div`
   position: relative;
   width: 100%;
-  min-height: 400px;
-  margin-bottom: 60px;
+  min-height: 200px;
+  margin-bottom: 40px;
   overflow: hidden;
-  border-radius: 24px;
+  border-radius: 16px;
   background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: url("/images/hero-bg.jpg") center/cover;
-    z-index: 1;
-  }
-
-  &::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(
-      135deg,
-      rgba(20, 20, 20, 0.99) 0%,
-      rgba(25, 25, 25, 0.98) 50%,
-      rgba(76, 175, 80, 0.08) 100%
-    );
-    z-index: 2;
-  }
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  padding: 2rem;
 `;
 
 const HeroContent = styled.div`
@@ -600,14 +198,18 @@ const HeroContent = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
   text-align: center;
-  max-width: 800px;
+  max-width: 600px;
   margin: 0 auto;
+  padding: 2rem;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 `;
 
 const HeroTitle = styled.h1`
-  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-size: 2.5rem;
   font-weight: 800;
   color: #ffffff;
   margin: 0;
@@ -616,14 +218,14 @@ const HeroTitle = styled.h1`
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   animation: ${fadeIn} 1s ease-out;
+  margin-bottom: 1rem;
 `;
 
 const HeroSubtitle = styled.p`
-  font-size: clamp(1.1rem, 2vw, 1.3rem);
+  font-size: 1.1rem;
   color: #e0e0e0;
-  margin: 20px 0 40px;
-  max-width: 600px;
-  line-height: 1.6;
+  margin: 0 0 2rem;
+  line-height: 1.5;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   animation: ${fadeIn} 1s ease-out 0.2s backwards;
 `;
@@ -666,30 +268,17 @@ const AnimatedNFTCard = styled.div`
   animation-delay: calc(var(--index) * 0.1s);
   display: flex;
   flex-direction: column;
-  gap: 12px;
   border-radius: 16px;
   overflow: hidden;
-  transition: all 0.3s ease;
-  position: relative;
   background: rgba(25, 25, 25, 0.98);
   backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
 
   &:hover {
     transform: translateY(-8px);
-    background: rgba(30, 30, 30, 0.99);
-    border-color: rgba(255, 255, 255, 0.25);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-  }
-
-  @media (max-width: 768px) {
-    gap: 8px;
-    border-radius: 12px;
-  }
-
-  @media (max-width: 480px) {
-    border-radius: 10px;
   }
 `;
 
@@ -842,11 +431,67 @@ const ModalButton = styled.button<StyledProps>`
   }
 `;
 
-// Add styled components for the NFT card
+// Update the IPFSNFTCard component
+const IPFSNFTCard: React.FC<NFTCardProps> = ({ metadata, isMinted }) => {
+  if (!metadata || !metadata.id) {
+    return (
+      <CardContainer isMinted={false}>
+        <NFTImageContainer>
+          <div
+            style={{
+              padding: "1rem",
+              textAlign: "center",
+              color: "#a0a0a0",
+              fontSize: "0.9rem",
+            }}
+          >
+            Loading NFT data...
+          </div>
+        </NFTImageContainer>
+      </CardContainer>
+    );
+  }
+
+  // Use the image URL from metadata if available, otherwise construct it
+  const ipfsImageUrl =
+    metadata.image?.replace("ipfs://", "https://ipfs.io/ipfs/") ||
+    `https://ipfs.io/ipfs/${IMAGE_IPFS_CID}/image_${metadata.id}.svg`;
+
+  return (
+    <CardContainer isMinted={isMinted}>
+      <NFTImageContainer>
+        <img
+          src={ipfsImageUrl}
+          alt={`NFT #${metadata.id}`}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "contain",
+            filter: isMinted ? "grayscale(100%)" : "none",
+            padding: "1rem",
+            backgroundColor: "rgba(0, 0, 0, 0.2)",
+          }}
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = "none";
+            target.parentElement!.innerHTML = `
+              <div style="padding: 1rem; text-align: center; color: #a0a0a0;">
+                Image not available
+              </div>
+            `;
+          }}
+        />
+        {isMinted && <MintedOverlay>Minted</MintedOverlay>}
+      </NFTImageContainer>
+    </CardContainer>
+  );
+};
+
+// Update styled components for simpler card
 const CardContainer = styled.div<{ isMinted: boolean }>`
   width: 100%;
   aspect-ratio: 1;
-  border-radius: 8px;
+  border-radius: 16px;
   overflow: hidden;
   background: ${(props) =>
     props.isMinted ? "rgba(128, 128, 128, 0.3)" : "rgba(25, 25, 25, 0.98)"};
@@ -858,106 +503,27 @@ const CardContainer = styled.div<{ isMinted: boolean }>`
         : "rgba(255, 255, 255, 0.15)"};
   position: relative;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    border-color: ${(props) =>
+      props.isMinted
+        ? "rgba(128, 128, 128, 0.5)"
+        : "rgba(255, 255, 255, 0.25)"};
+  }
 `;
 
 const NFTImageContainer = styled.div`
   width: 100%;
-  height: 100%;
+  aspect-ratio: 1;
   position: relative;
   overflow: hidden;
-`;
-
-const FeaturedInfo = styled.div`
-  padding: 1rem;
-  background: rgba(25, 25, 25, 0.98);
-  backdrop-filter: blur(8px);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-`;
-
-const FeaturedName = styled.h3`
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #ffffff;
-  margin: 0 0 0.5rem 0;
-`;
-
-const FeaturedPrice = styled.div`
-  font-size: 1rem;
-  color: #4caf50;
-  font-weight: 600;
-`;
-
-// Update the NFTCard component to handle IPFS URLs
-const IPFSNFTCard: React.FC<NFTCardProps> = ({ metadata, isMinted }) => {
-  const ipfsImageUrl = metadata.image.replace(
-    "ipfs://",
-    "https://ipfs.io/ipfs/"
-  );
-
-  return (
-    <CardContainer isMinted={isMinted}>
-      <NFTImageContainer>
-        <img
-          src={ipfsImageUrl}
-          alt={metadata.name}
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            filter: isMinted ? "grayscale(100%)" : "none",
-          }}
-        />
-        {isMinted && <MintedOverlay>Minted</MintedOverlay>}
-      </NFTImageContainer>
-      <FeaturedInfo>
-        <FeaturedName>{metadata.name}</FeaturedName>
-        <FeaturedPrice>{metadata.price} ETH</FeaturedPrice>
-      </FeaturedInfo>
-    </CardContainer>
-  );
-};
-
-const DisconnectButton = styled.button`
-  background: rgba(255, 59, 48, 0.1);
-  color: #ff3b30;
-  border: 1px solid rgba(255, 59, 48, 0.2);
-  padding: 6px 12px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  margin-top: 8px;
-  width: 100%;
-
-  &:hover {
-    background: rgba(255, 59, 48, 0.2);
-    border-color: rgba(255, 59, 48, 0.3);
-  }
-
-  &:active {
-    transform: translateY(1px);
-  }
-`;
-
-const ErrorMessage = styled.div`
-  color: #ff3b30;
-  background: rgba(255, 59, 48, 0.1);
-  border: 1px solid rgba(255, 59, 48, 0.2);
-  padding: 8px 16px;
-  border-radius: 8px;
-  margin-top: 8px;
-  font-size: 0.9rem;
-  text-align: center;
-  max-width: 400px;
-`;
-
-const LoadingMessage = styled.div`
-  text-align: center;
-  color: #e0e0e0;
-  font-size: 1.2rem;
-  margin: 40px 0;
-  animation: ${pulse} 1.5s infinite;
+  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 const MintedOverlay = styled.div`
@@ -974,7 +540,34 @@ const MintedOverlay = styled.div`
   z-index: 2;
 `;
 
-// Add new styled components for pagination
+// Add new styled component for mint button wrapper
+const MintButtonWrapper = styled.div`
+  padding: 1rem;
+  background: rgba(25, 25, 25, 0.98);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+`;
+
+// Add back necessary styled components
+const LoadingMessage = styled.div`
+  text-align: center;
+  color: #e0e0e0;
+  font-size: 1.2rem;
+  margin: 40px 0;
+  animation: ${pulse} 1.5s infinite;
+`;
+
+const ErrorMessage = styled.div`
+  color: #ff3b30;
+  background: rgba(255, 59, 48, 0.1);
+  border: 1px solid rgba(255, 59, 48, 0.2);
+  padding: 8px 16px;
+  border-radius: 8px;
+  margin-top: 8px;
+  font-size: 0.9rem;
+  text-align: center;
+  max-width: 400px;
+`;
+
 const PaginationContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -985,15 +578,17 @@ const PaginationContainer = styled.div`
   padding: 0 20px;
 `;
 
-const PaginationButton = styled.button<{ active?: boolean }>`
+const PaginationButton = styled.button<{ "data-active"?: boolean }>`
   background: ${(props) =>
-    props.active
+    props["data-active"]
       ? "linear-gradient(135deg, #4caf50 0%, #45a049 100%)"
       : "rgba(255, 255, 255, 0.1)"};
-  color: ${(props) => (props.active ? "white" : "#e0e0e0")};
+  color: ${(props) => (props["data-active"] ? "white" : "#e0e0e0")};
   border: 1px solid
     ${(props) =>
-      props.active ? "rgba(76, 175, 80, 0.3)" : "rgba(255, 255, 255, 0.1)"};
+      props["data-active"]
+        ? "rgba(76, 175, 80, 0.3)"
+        : "rgba(255, 255, 255, 0.1)"};
   padding: 8px 16px;
   font-size: 1rem;
   font-weight: 600;
@@ -1008,125 +603,44 @@ const PaginationButton = styled.button<{ active?: boolean }>`
   opacity: ${(props) => (props.disabled ? 0.5 : 1)};
 
   &:hover:not(:disabled) {
-    transform: ${(props) => (props.active ? "none" : "translateY(-2px)")};
+    transform: ${(props) =>
+      props["data-active"] ? "none" : "translateY(-2px)"};
     background: ${(props) =>
-      props.active
+      props["data-active"]
         ? "linear-gradient(135deg, #4caf50 0%, #45a049 100%)"
         : "rgba(255, 255, 255, 0.15)"};
     border-color: ${(props) =>
-      props.active ? "rgba(76, 175, 80, 0.4)" : "rgba(255, 255, 255, 0.2)"};
+      props["data-active"]
+        ? "rgba(76, 175, 80, 0.4)"
+        : "rgba(255, 255, 255, 0.2)"};
   }
 
   &:disabled {
     cursor: not-allowed;
     opacity: 0.5;
   }
-
-  @media (max-width: 768px) {
-    padding: 6px 12px;
-    font-size: 0.9rem;
-    min-width: 36px;
-    height: 36px;
-  }
-`;
-
-// Add new styled components for minting progress
-const MintingProgressContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-  max-width: 600px;
-  margin: 20px 0;
-  padding: 24px;
-  background: rgba(25, 25, 25, 0.98);
-  border-radius: 16px;
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-`;
-
-const MintingProgressBar = styled.div`
-  width: 100%;
-  height: 10px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 5px;
-  overflow: hidden;
-  position: relative;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
-`;
-
-const MintingProgressFill = styled.div`
-  height: 100%;
-  background: linear-gradient(90deg, #4caf50 0%, #45a049 100%);
-  border-radius: 5px;
-  transition: width 0.5s ease;
-  box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
-`;
-
-const MintingStats = styled.div`
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-  gap: 20px;
-  margin-top: 8px;
-`;
-
-const MintingStat = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  flex: 1;
-  padding: 12px;
-  background: rgba(25, 25, 25, 0.98);
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  transition: all 0.3s ease;
-
-  &:hover {
-    background: rgba(30, 30, 30, 0.99);
-    transform: translateY(-2px);
-    border-color: rgba(255, 255, 255, 0.25);
-  }
-`;
-
-const MintingStatLabel = styled.div`
-  font-size: 0.9rem;
-  color: #a0a0a0;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-`;
-
-const MintingStatValue = styled.div`
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #ffffff;
-  font-family: monospace;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 `;
 
 const WalletSection = styled.div`
   display: flex;
   align-items: center;
-  gap: 20px;
-  margin-top: 20px;
-  animation: ${fadeIn} 1s ease-out 0.6s backwards;
+  gap: 1rem;
+  animation: ${fadeIn} 1s ease-out 0.4s backwards;
+  width: 100%;
+  max-width: 400px;
 `;
 
 const WalletInfo = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 0.5rem;
   background: rgba(25, 25, 25, 0.98);
-  padding: 16px 24px;
-  border-radius: 16px;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  min-width: 240px;
+  width: 100%;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   transition: all 0.3s ease;
 
@@ -1138,13 +652,15 @@ const WalletInfo = styled.div`
 `;
 
 const WalletAddress = styled.div`
-  font-size: 1.2rem;
+  font-size: 1rem;
   font-weight: 600;
   color: #ffffff;
+  word-break: break-all;
+  text-align: center;
 `;
 
 const WalletStatus = styled.div`
-  font-size: 1rem;
+  font-size: 0.9rem;
   color: #4caf50;
   font-weight: 600;
 `;
@@ -1156,15 +672,15 @@ const ConnectButton = styled.button<StyledProps>`
       : "linear-gradient(135deg, #4caf50 0%, #45a049 100%)"};
   color: white;
   border: none;
-  padding: 16px 32px;
-  font-size: 1.1rem;
+  padding: 1rem 2rem;
+  font-size: 1rem;
   font-weight: 600;
   border-radius: 12px;
   cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
   transition: all 0.3s ease;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   opacity: ${(props) => (props.disabled ? 0.7 : 1)};
-  min-width: 240px;
+  width: 100%;
 
   &:hover:not(:disabled) {
     transform: translateY(-2px);
@@ -1172,3 +688,454 @@ const ConnectButton = styled.button<StyledProps>`
     box-shadow: 0 12px 40px rgba(76, 175, 80, 0.4);
   }
 `;
+
+const DisconnectButton = styled.button`
+  background: rgba(255, 59, 48, 0.1);
+  color: #ff3b30;
+  border: 1px solid rgba(255, 59, 48, 0.2);
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+
+  &:hover {
+    background: rgba(255, 59, 48, 0.2);
+    border-color: rgba(255, 59, 48, 0.3);
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+`;
+
+const Gallery: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const {
+    address,
+    isConnected,
+    isConnecting,
+    connect,
+    disconnect,
+    error: walletError,
+  } = useWallet();
+  const { contract } = useContract();
+  const [isMinting, setIsMinting] = useState(false);
+  const [mintedNFTs, setMintedNFTs] = useState<number[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedNFT, setSelectedNFT] = useState<number | null>(null);
+  const [nfts, setNFTs] = useState<NFTMetadata[]>([]);
+  const [mintError, setMintError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentGateway, setCurrentGateway] = useState(0);
+
+  // Initialize NFT data with IPFS paths
+  useEffect(() => {
+    const initialNFTs: NFTMetadata[] = Array.from({ length: 100 }, (_, i) => ({
+      id: i + 1,
+      name: `Limited NFT #${i + 1}`,
+      description: "Exclusive NFT from a limited collection of 100 avatars.",
+      image: `ipfs://${IPFS_CID}/image_${i + 1}.svg`,
+      price: "0.01",
+      attributes: [
+        { trait_type: "Rarity", value: "Common" },
+        { trait_type: "Edition", value: `${i + 1}/100` },
+      ],
+    }));
+    setNFTs(initialNFTs);
+  }, []);
+
+  // Load NFT metadata from IPFS
+  useEffect(() => {
+    const loadNFTMetadata = async () => {
+      if (nfts.length === 0) return;
+
+      setIsLoading(true);
+      try {
+        const updatedNFTs = await Promise.all(
+          nfts.map(async (nft) => {
+            try {
+              // Fetch metadata from IPFS
+              const response = await fetch(
+                `https://ipfs.io/ipfs/${IPFS_CID}/metadata_${nft.id}.json`
+              );
+
+              // If metadata exists, use it
+              if (response.ok) {
+                const metadata = await response.json();
+                return {
+                  ...nft,
+                  name: metadata.name || nft.name,
+                  description: metadata.description || nft.description,
+                  image: metadata.image || nft.image,
+                  attributes: metadata.attributes || nft.attributes,
+                };
+              }
+
+              // If metadata doesn't exist (404), use fallback data
+              console.log(`Using fallback metadata for NFT #${nft.id}`);
+              return {
+                ...nft,
+                name: `Limited NFT #${nft.id}`,
+                description:
+                  "Exclusive NFT from a limited collection of 100 avatars.",
+                image: `ipfs://${IPFS_CID}/image_${nft.id}.svg`,
+                price: "0.01",
+                attributes: [
+                  { trait_type: "Rarity", value: "Common" },
+                  { trait_type: "Edition", value: `${nft.id}/100` },
+                ],
+              };
+            } catch (error) {
+              // Keep the initial IPFS data if fetch fails
+              console.log(
+                `Error loading NFT #${nft.id} from IPFS, using fallback:`,
+                error
+              );
+              return nft;
+            }
+          })
+        );
+        setNFTs(updatedNFTs);
+      } catch (error) {
+        console.error("Error loading NFT metadata from IPFS:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadNFTMetadata();
+  }, [nfts.length]);
+
+  // Load minted status immediately, regardless of wallet connection
+  useEffect(() => {
+    const loadMintedStatus = async () => {
+      if (!contract) {
+        try {
+          const provider = new ethers.JsonRpcProvider(
+            import.meta.env.VITE_RPC_URL ||
+              "https://eth-sepolia.g.alchemy.com/v2/demo"
+          );
+          const readOnlyContract = new ethers.Contract(
+            import.meta.env.VITE_CONTRACT_ADDRESS || "",
+            CONTRACT_ABI,
+            provider
+          );
+
+          setIsLoading(true);
+          setMintError(null);
+          const minted = new Set<number>();
+
+          try {
+            const checkPromises = nfts.map(async (nft) => {
+              try {
+                const owner = await readOnlyContract.ownerOf(nft.id);
+                if (owner !== ethers.ZeroAddress) {
+                  minted.add(nft.id);
+                }
+              } catch (error: unknown) {
+                const contractError = error as ContractError;
+                // Handle nonexistent token error gracefully
+                if (
+                  contractError?.code === "CALL_EXCEPTION" ||
+                  contractError?.message?.includes("ERC721NonexistentToken") ||
+                  contractError?.message?.includes("execution reverted")
+                ) {
+                  // Token doesn't exist yet, which is fine
+                  console.log(`NFT #${nft.id} not minted yet`);
+                } else {
+                  // Log other errors
+                  console.error(`Error checking NFT #${nft.id}:`, error);
+                }
+              }
+            });
+
+            await Promise.all(checkPromises);
+            setMintedNFTs(Array.from(minted));
+          } catch (error) {
+            console.error("Error loading minted status:", error);
+            setMintError("Failed to load NFT status. Please refresh the page.");
+          } finally {
+            setIsLoading(false);
+          }
+        } catch (error) {
+          console.error("Error creating read-only provider:", error);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      setIsLoading(true);
+      setMintError(null);
+      const minted = new Set<number>();
+
+      try {
+        const checkPromises = nfts.map(async (nft) => {
+          try {
+            const owner = await contract.ownerOf(nft.id);
+            if (owner !== ethers.ZeroAddress) {
+              minted.add(nft.id);
+            }
+          } catch (error: unknown) {
+            const contractError = error as ContractError;
+            // Handle nonexistent token error gracefully
+            if (
+              contractError?.code === "CALL_EXCEPTION" ||
+              contractError?.message?.includes("ERC721NonexistentToken") ||
+              contractError?.message?.includes("execution reverted")
+            ) {
+              // Token doesn't exist yet, which is fine
+              console.log(`NFT #${nft.id} not minted yet`);
+            } else {
+              // Log other errors
+              console.error(`Error checking NFT #${nft.id}:`, error);
+            }
+          }
+        });
+
+        await Promise.all(checkPromises);
+        setMintedNFTs(Array.from(minted));
+      } catch (error) {
+        console.error("Error loading minted status:", error);
+        setMintError("Failed to load NFT status. Please refresh the page.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadMintedStatus();
+  }, [contract, nfts]);
+
+  // Auto-show mint modal if mint=true in URL
+  useEffect(() => {
+    if (searchParams.get("mint") === "true" && nfts.length > 0) {
+      setSelectedNFT(1);
+    }
+  }, [searchParams, nfts]);
+
+  // Calculate total pages when NFTs are loaded
+  useEffect(() => {
+    setTotalPages(Math.ceil(nfts.length / ITEMS_PER_PAGE));
+  }, [nfts.length]);
+
+  // Get current page items
+  const getCurrentPageItems = () => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return nfts.slice(startIndex, endIndex);
+  };
+
+  // Handle page change with proper type assertion
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Scroll to top of gallery with proper type assertion
+    const galleryContent = document.querySelector(
+      ".gallery-content"
+    ) as HTMLElement;
+    if (galleryContent) {
+      window.scrollTo({
+        top: galleryContent.offsetTop,
+        behavior: "smooth",
+      });
+    }
+  };
+
+  const handleMint = async (tokenId: number) => {
+    if (!contract || !address) {
+      setMintError("Please connect your wallet first.");
+      return;
+    }
+
+    if (isMinting) {
+      setMintError("Please wait for the current mint to complete.");
+      return;
+    }
+
+    const isMinted = mintedNFTs.includes(tokenId);
+    if (isMinted) {
+      setMintError("This NFT has already been minted.");
+      return;
+    }
+
+    setIsMinting(true);
+    setMintError(null);
+    try {
+      const tokenURI = `ipfs://${IPFS_CID}/metadata_${tokenId}.json`;
+      const tx = await contract.mintNFT(address, tokenURI);
+      console.log("Minting tx:", tx.hash);
+
+      // Wait for transaction with timeout
+      const receipt = await Promise.race([
+        tx.wait(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Transaction timeout")), 60000)
+        ),
+      ]);
+
+      if (receipt && receipt.status === 1) {
+        setMintedNFTs((prev) => [...prev, tokenId]);
+        setSelectedNFT(null);
+      } else {
+        throw new Error("Transaction failed");
+      }
+    } catch (error) {
+      console.error("Minting error:", error);
+      if (error instanceof Error) {
+        if (error.message.includes("user rejected")) {
+          setMintError("Transaction was rejected. Please try again.");
+        } else if (error.message.includes("insufficient funds")) {
+          setMintError(
+            "Insufficient funds for minting. Please add ETH to your wallet."
+          );
+        } else if (error.message.includes("Transaction timeout")) {
+          setMintError(
+            "Transaction timed out. Please check your wallet for the transaction status."
+          );
+        } else {
+          setMintError(`Minting failed: ${error.message}`);
+        }
+      } else {
+        setMintError("Minting failed. Please try again.");
+      }
+    } finally {
+      setIsMinting(false);
+    }
+  };
+
+  return (
+    <>
+      <Navigation />
+      <GalleryContainer>
+        <GalleryContent className="gallery-content">
+          <HeroSection>
+            <HeroContent>
+              <HeroTitle>Limited NFT Collection</HeroTitle>
+              <HeroSubtitle>
+                Mint your unique digital art piece from our exclusive collection
+              </HeroSubtitle>
+              <WalletSection>
+                {isConnected ? (
+                  <WalletInfo>
+                    <WalletAddress>{address}</WalletAddress>
+                    <WalletStatus>Connected</WalletStatus>
+                    <DisconnectButton onClick={disconnect}>
+                      Disconnect Wallet
+                    </DisconnectButton>
+                  </WalletInfo>
+                ) : (
+                  <ConnectButton onClick={connect} disabled={isConnecting}>
+                    {isConnecting ? "Connecting..." : "Connect Wallet to Mint"}
+                  </ConnectButton>
+                )}
+                {walletError && <ErrorMessage>{walletError}</ErrorMessage>}
+              </WalletSection>
+            </HeroContent>
+          </HeroSection>
+
+          {isLoading ? (
+            <LoadingMessage>Loading NFTs...</LoadingMessage>
+          ) : (
+            <>
+              <GalleryGrid>
+                {getCurrentPageItems().map((nft) => (
+                  <AnimatedNFTCard
+                    key={nft.id}
+                    style={
+                      {
+                        "--index": nft.id % 12,
+                        opacity: mintedNFTs.includes(nft.id) ? 0.7 : 1,
+                      } as React.CSSProperties
+                    }
+                  >
+                    <NFTErrorBoundary>
+                      <IPFSNFTCard
+                        metadata={nft}
+                        isMinted={mintedNFTs.includes(nft.id)}
+                      />
+                    </NFTErrorBoundary>
+                    <MintButtonWrapper>
+                      <MintButton
+                        onClick={() => handleMint(nft.id)}
+                        disabled={isMinting || mintedNFTs.includes(nft.id)}
+                        isMinted={mintedNFTs.includes(nft.id)}
+                      >
+                        {mintedNFTs.includes(nft.id)
+                          ? "Minted"
+                          : isMinting
+                          ? "Minting..."
+                          : "Mint NFT"}
+                      </MintButton>
+                    </MintButtonWrapper>
+                  </AnimatedNFTCard>
+                ))}
+              </GalleryGrid>
+
+              <PaginationContainer>
+                <PaginationButton
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  ←
+                </PaginationButton>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (page) => (
+                    <PaginationButton
+                      key={page}
+                      onClick={() => handlePageChange(page)}
+                      data-active={currentPage === page}
+                    >
+                      {page}
+                    </PaginationButton>
+                  )
+                )}
+
+                <PaginationButton
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  →
+                </PaginationButton>
+              </PaginationContainer>
+            </>
+          )}
+        </GalleryContent>
+
+        {selectedNFT && !mintedNFTs.includes(selectedNFT) && !isLoading && (
+          <MintModal>
+            <ModalContent>
+              <ModalTitle>Mint NFT #{selectedNFT}</ModalTitle>
+              <ModalText>
+                Are you sure you want to mint this NFT? This action cannot be
+                undone.
+              </ModalText>
+              {mintError && <ErrorMessage>{mintError}</ErrorMessage>}
+              <ModalButtons>
+                <ModalButton
+                  onClick={() => handleMint(selectedNFT)}
+                  disabled={isMinting}
+                >
+                  {isMinting ? "Minting..." : "Confirm Mint"}
+                </ModalButton>
+                <ModalButton
+                  secondary
+                  onClick={() => {
+                    setSelectedNFT(null);
+                    setMintError(null);
+                  }}
+                >
+                  Cancel
+                </ModalButton>
+              </ModalButtons>
+            </ModalContent>
+          </MintModal>
+        )}
+      </GalleryContainer>
+    </>
+  );
+};
+
+export default Gallery;

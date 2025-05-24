@@ -8,7 +8,8 @@ import React, {
   useCallback,
   useRef,
 } from "react";
-import { ethers } from "ethers";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface WalletContextType {
   address: string | null;
@@ -30,6 +31,20 @@ const WalletContext = createContext<WalletContextType>({
 
 export const useWallet = () => useContext(WalletContext);
 
+// Add type declaration for window.ethereum
+declare global {
+  interface Window {
+    ethereum?: {
+      request: (args: { method: string; params?: any[] }) => Promise<any>;
+      on: (event: string, callback: (...args: any[]) => void) => void;
+      removeListener: (
+        event: string,
+        callback: (...args: any[]) => void
+      ) => void;
+    };
+  }
+}
+
 export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -48,8 +63,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const connect = useCallback(async () => {
-    if (!window.ethereum) {
-      setError("MetaMask not found. Please install it.");
+    if (typeof window.ethereum === "undefined") {
+      toast.error("Please install MetaMask to use this feature");
       return;
     }
 
@@ -72,51 +87,26 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({
       setError(null);
 
       try {
-        // First try to get accounts without requesting
-        let accounts = await window.ethereum.request({
-          method: "eth_accounts",
+        const provider = window.ethereum;
+        if (!provider) {
+          throw new Error("No ethereum provider found");
+        }
+
+        let accounts = await provider.request({
+          method: "eth_requestAccounts",
         });
 
-        // If no accounts, then request them
         if (!Array.isArray(accounts) || accounts.length === 0) {
-          // Wait a bit before requesting accounts
-          await new Promise((resolve) => setTimeout(resolve, 500));
-
-          try {
-            accounts = await window.ethereum.request({
-              method: "eth_requestAccounts",
-            });
-          } catch (requestError) {
-            // Handle specific MetaMask errors
-            if (requestError instanceof Error) {
-              if (requestError.message.includes("Already processing")) {
-                // Wait and retry once
-                await new Promise((resolve) => setTimeout(resolve, 1000));
-                accounts = await window.ethereum.request({
-                  method: "eth_requestAccounts",
-                });
-              } else if (requestError.message.includes("User rejected")) {
-                setError("Connection rejected. Please try again.");
-                return;
-              } else {
-                throw requestError;
-              }
-            }
-          }
+          toast.error("No accounts found");
+          return;
         }
 
-        if (Array.isArray(accounts) && accounts.length > 0) {
-          setAddress(accounts[0]);
-          setIsConnected(true);
-          setError(null);
-        } else {
-          setError("No accounts found. Please unlock MetaMask.");
-        }
+        setAddress(accounts[0]);
+        setIsConnected(true);
+        toast.success("Wallet connected successfully!");
       } catch (error) {
         console.error("Error connecting wallet:", error);
-        setError(
-          error instanceof Error ? error.message : "Failed to connect wallet"
-        );
+        toast.error("Failed to connect wallet");
 
         // Set up retry after 5 seconds if it's a recoverable error
         if (
@@ -146,73 +136,76 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({
     clearRetryTimeout();
   }, []);
 
-  useEffect(() => {
-    // Check if wallet is already connected
-    const checkConnection = async () => {
-      if (window.ethereum) {
-        try {
-          const accounts = await window.ethereum.request({
-            method: "eth_accounts",
-          });
+  const handleAccountsChanged = useCallback((accounts: unknown) => {
+    if (Array.isArray(accounts) && accounts.length > 0) {
+      setAddress(accounts[0] as string);
+      setIsConnected(true);
+    } else {
+      setAddress(null);
+      setIsConnected(false);
+    }
+  }, []);
 
-          if (Array.isArray(accounts) && accounts.length > 0) {
-            setAddress(accounts[0]);
-            setIsConnected(true);
-            setError(null);
-          }
-        } catch (error) {
-          console.error("Error checking wallet connection:", error);
-          setError("Failed to check wallet connection");
+  useEffect(() => {
+    const checkConnection = async () => {
+      if (typeof window.ethereum === "undefined") return;
+
+      try {
+        const provider = window.ethereum;
+        if (!provider) return;
+
+        const accounts = await provider.request({
+          method: "eth_accounts",
+        });
+
+        if (Array.isArray(accounts) && accounts.length > 0) {
+          setAddress(accounts[0] as string);
+          setIsConnected(true);
         }
+      } catch (error) {
+        console.error("Error checking connection:", error);
       }
     };
 
     checkConnection();
 
-    // Listen for account changes
-    if (window.ethereum) {
-      const handleAccountsChanged = (accounts: string[]) => {
-        if (accounts.length > 0) {
-          setAddress(accounts[0]);
-          setIsConnected(true);
-          setError(null);
-        } else {
-          disconnect();
-        }
-      };
-
-      const handleChainChanged = () => {
-        // Reload the page on chain change to ensure proper state
-        window.location.reload();
-      };
-
-      const handleDisconnect = () => {
-        disconnect();
-      };
-
-      window.ethereum.on("accountsChanged", handleAccountsChanged);
-      window.ethereum.on("chainChanged", handleChainChanged);
-      window.ethereum.on("disconnect", handleDisconnect);
-
-      return () => {
-        if (window.ethereum) {
-          window.ethereum.removeListener(
-            "accountsChanged",
-            handleAccountsChanged
-          );
-          window.ethereum.removeListener("chainChanged", handleChainChanged);
-          window.ethereum.removeListener("disconnect", handleDisconnect);
-        }
-        clearRetryTimeout();
-      };
+    const provider = window.ethereum;
+    if (provider) {
+      provider.on("accountsChanged", handleAccountsChanged);
     }
-  }, [disconnect]);
+
+    return () => {
+      if (provider) {
+        provider.removeListener("accountsChanged", handleAccountsChanged);
+      }
+      clearRetryTimeout();
+    };
+  }, [handleAccountsChanged]);
 
   return (
     <WalletContext.Provider
-      value={{ address, isConnected, isConnecting, connect, disconnect, error }}
+      value={{
+        address,
+        isConnected,
+        isConnecting,
+        connect,
+        disconnect,
+        error,
+      }}
     >
       {children}
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+      />
     </WalletContext.Provider>
   );
 };

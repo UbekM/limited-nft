@@ -1,6 +1,79 @@
 {
-  "name": "Limited NFT #72",
-  "description": "Exclusive NFT from a limited collection of 100 avatars.",
+  "name": "The uncommon Light Gray Default Hair #72",
+  "description": "A uncommon avatar with default hair light gray hair and default eyes. \nThis character wears a default and has a default expression, \nmaking it a unique piece in the Limited NFT collection.",
   "image": "ipfs://bafybeiboqfyvwo6fzhjbnudrgfxr565vkz2pgqyencvds33qgfquxbpwmi/image_72.svg",
-  "attributes": []
+  "attributes": [
+    {
+      "trait_type": "Base Traits",
+      "attributes": [
+        {
+          "trait_type": "hairStyle",
+          "value": "Default Hair",
+          "rarity_weight": 30
+        },
+        {
+          "trait_type": "hairColor",
+          "value": "Light Gray",
+          "rarity_weight": 30
+        },
+        {
+          "trait_type": "clothes",
+          "value": "Default",
+          "rarity_weight": 30
+        },
+        {
+          "trait_type": "eyes",
+          "value": "Default",
+          "rarity_weight": 30
+        },
+        {
+          "trait_type": "mouth",
+          "value": "Default",
+          "rarity_weight": 30
+        },
+        {
+          "trait_type": "accessories",
+          "value": "Default",
+          "rarity_weight": 30
+        }
+      ]
+    },
+    {
+      "trait_type": "Visual Characteristics",
+      "attributes": [
+        {
+          "trait_type": "Color Palette",
+          "value": "#fd9841, Light Gray, Black, #f2f2f2, #f4f4f4, #ffdeb5, #f59797, Blue",
+          "colors": [
+            "#fd9841",
+            "#e6e6e6",
+            "#262e33",
+            "#f2f2f2",
+            "#f4f4f4",
+            "#ffdeb5",
+            "#f59797",
+            "#5199e4"
+          ],
+          "rarity_weight": 30
+        },
+        {
+          "trait_type": "Style Complexity",
+          "value": "Low",
+          "score": 0.375,
+          "rarity_weight": 30
+        }
+      ]
+    },
+    {
+      "trait_type": "Unique Features",
+      "attributes": [
+        {
+          "trait_type": "Rarity Level",
+          "value": "uncommon",
+          "score": 0.375,
+          "rarity_weight": 30
+        }
+      ]
+    }
+  ]
 }

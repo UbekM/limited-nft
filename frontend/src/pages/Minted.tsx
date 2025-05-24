@@ -57,25 +57,6 @@ const Description = styled.p`
   margin-bottom: 2rem;
 `;
 
-const NFTGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 2rem;
-  margin-top: 2rem;
-
-  @media (max-width: 768px) {
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 1.5rem;
-  }
-
-  @media (max-width: 480px) {
-    grid-template-columns: 1fr;
-    max-width: 360px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-`;
-
 const EmptyState = styled.div`
   padding: 3rem;
   background: #f8f9fa;

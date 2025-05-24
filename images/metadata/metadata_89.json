@@ -1,6 +1,74 @@
 {
-  "name": "Limited NFT #89",
-  "description": "Exclusive NFT from a limited collection of 100 avatars.",
+  "name": "The uncommon Pink Default Hair #89",
+  "description": "A uncommon avatar with default hair pink hair and default eyes. \nThis character wears a default and has a default expression, \nmaking it a unique piece in the Limited NFT collection.",
   "image": "ipfs://bafybeiboqfyvwo6fzhjbnudrgfxr565vkz2pgqyencvds33qgfquxbpwmi/image_89.svg",
-  "attributes": []
+  "attributes": [
+    {
+      "trait_type": "Base Traits",
+      "attributes": [
+        {
+          "trait_type": "hairStyle",
+          "value": "Default Hair",
+          "rarity_weight": 30
+        },
+        {
+          "trait_type": "hairColor",
+          "value": "Pink",
+          "rarity_weight": 30
+        },
+        {
+          "trait_type": "clothes",
+          "value": "Default",
+          "rarity_weight": 30
+        },
+        {
+          "trait_type": "eyes",
+          "value": "Default",
+          "rarity_weight": 30
+        },
+        {
+          "trait_type": "mouth",
+          "value": "Default",
+          "rarity_weight": 30
+        },
+        {
+          "trait_type": "accessories",
+          "value": "Default",
+          "rarity_weight": 30
+        }
+      ]
+    },
+    {
+      "trait_type": "Visual Characteristics",
+      "attributes": [
+        {
+          "trait_type": "Color Palette",
+          "value": "#fd9841, Pink, #ecdcbf",
+          "colors": [
+            "#fd9841",
+            "#ff488e",
+            "#ecdcbf"
+          ],
+          "rarity_weight": 30
+        },
+        {
+          "trait_type": "Style Complexity",
+          "value": "Low",
+          "score": 0.375,
+          "rarity_weight": 30
+        }
+      ]
+    },
+    {
+      "trait_type": "Unique Features",
+      "attributes": [
+        {
+          "trait_type": "Rarity Level",
+          "value": "uncommon",
+          "score": 0.375,
+          "rarity_weight": 30
+        }
+      ]
+    }
+  ]
 }
