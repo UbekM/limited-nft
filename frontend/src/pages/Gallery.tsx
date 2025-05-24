@@ -171,9 +171,7 @@ const ModalButton = styled.button<StyledProps>`
   color: ${(props) => (props.secondary ? "#e0e0e0" : "white")};
   border: 1px solid
     ${(props) =>
-      props.secondary
-        ? "rgba(255, 255, 255, 0.2)"
-        : "rgba(76, 175, 80, 0.3)"};
+      props.secondary ? "rgba(255, 255, 255, 0.2)" : "rgba(76, 175, 80, 0.3)"};
   padding: 0.75rem 1.5rem;
   font-size: 1rem;
   font-weight: 600;
@@ -189,9 +187,7 @@ const ModalButton = styled.button<StyledProps>`
         ? "rgba(255, 255, 255, 0.15)"
         : "linear-gradient(135deg, #45a049 0%, #3d8b40 100%)"};
     border-color: ${(props) =>
-      props.secondary
-        ? "rgba(255, 255, 255, 0.3)"
-        : "rgba(76, 175, 80, 0.4)"};
+      props.secondary ? "rgba(255, 255, 255, 0.3)" : "rgba(76, 175, 80, 0.4)"};
   }
 
   &:disabled {
