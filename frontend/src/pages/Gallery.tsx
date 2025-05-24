@@ -38,47 +38,6 @@ const pulse = keyframes`
   }
 `;
 
-type EthereumRequestMethod =
-  | "eth_requestAccounts"
-  | "eth_accounts"
-  | "eth_chainId"
-  | "eth_sendTransaction"
-  | "eth_sign"
-  | "personal_sign"
-  | "eth_signTypedData"
-  | "wallet_switchEthereumChain"
-  | "wallet_addEthereumChain";
-
-type EthereumRequestParams = {
-  method: EthereumRequestMethod;
-  params?: unknown[];
-};
-
-type EthereumEventType =
-  | "accountsChanged"
-  | "chainChanged"
-  | "connect"
-  | "disconnect";
-
-type EthereumProvider = {
-  request: (args: EthereumRequestParams) => Promise<unknown>;
-  on: (
-    event: EthereumEventType,
-    callback: (...args: unknown[]) => void
-  ) => void;
-  removeListener: (
-    event: EthereumEventType,
-    callback: (...args: unknown[]) => void
-  ) => void;
-  isMetaMask?: boolean;
-};
-
-declare global {
-  interface Window {
-    ethereum?: EthereumProvider;
-  }
-}
-
 interface NFTAttribute {
   trait_type: string;
   value: string;
@@ -151,14 +110,6 @@ class NFTErrorBoundary extends React.Component<
     return this.props.children;
   }
 }
-
-// Add IPFS gateways
-const IPFS_GATEWAYS = [
-  "https://ipfs.io/ipfs/",
-  "https://gateway.pinata.cloud/ipfs/",
-  "https://cloudflare-ipfs.com/ipfs/",
-  "https://dweb.link/ipfs/",
-];
 
 const GalleryContainer = styled.div`
   position: relative;
@@ -730,7 +681,6 @@ const Gallery: React.FC = () => {
   const [mintError, setMintError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [currentGateway, setCurrentGateway] = useState(0);
 
   // Initialize NFT data with IPFS paths
   useEffect(() => {

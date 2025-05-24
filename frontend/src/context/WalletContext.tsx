@@ -11,6 +11,28 @@ import React, {
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+type EthereumRequestMethod =
+  | "eth_requestAccounts"
+  | "eth_accounts"
+  | "eth_chainId"
+  | "eth_sendTransaction"
+  | "eth_sign"
+  | "personal_sign"
+  | "eth_signTypedData"
+  | "wallet_switchEthereumChain"
+  | "wallet_addEthereumChain";
+
+type EthereumRequestParams = {
+  method: EthereumRequestMethod;
+  params?: unknown[];
+};
+
+type EthereumEventType =
+  | "accountsChanged"
+  | "chainChanged"
+  | "connect"
+  | "disconnect";
+
 interface WalletContextType {
   address: string | null;
   isConnected: boolean;
@@ -35,12 +57,16 @@ export const useWallet = () => useContext(WalletContext);
 declare global {
   interface Window {
     ethereum?: {
-      request: (args: { method: string; params?: any[] }) => Promise<any>;
-      on: (event: string, callback: (...args: any[]) => void) => void;
-      removeListener: (
-        event: string,
-        callback: (...args: any[]) => void
+      request: (args: EthereumRequestParams) => Promise<unknown>;
+      on: (
+        event: EthereumEventType,
+        callback: (...args: unknown[]) => void
       ) => void;
+      removeListener: (
+        event: EthereumEventType,
+        callback: (...args: unknown[]) => void
+      ) => void;
+      isMetaMask?: boolean;
     };
   }
 }
