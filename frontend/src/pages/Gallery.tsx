@@ -10,8 +10,9 @@ import { useWallet } from "../context/WalletContext";
 import { useContract } from "../context/ContractContext";
 import { CONTRACT_ABI } from "../constants/contract";
 
-const IPFS_CID = import.meta.env.VITE_IPFS_CID;
-const IMAGE_IPFS_CID = import.meta.env.VITE_IMAGE_IPFS_CID;
+const IPFS_CID = "bafybeibxopzjrohhlj2xrmijrk75vtmnujanee7tin4ly6ode2mrrhmwxq";
+const IMAGE_IPFS_CID =
+  "bafybeiboqfyvwo6fzhjbnudrgfxr565vkz2pgqyencvds33qgfquxbpwmi";
 
 // Animations
 const fadeIn = keyframes`
@@ -402,40 +403,15 @@ const IPFSNFTCard: React.FC<NFTCardProps> = ({ metadata, isMinted }) => {
     );
   }
 
-  // Use multiple IPFS gateways for better reliability
-  const ipfsGateways = [
-    `https://ipfs.io/ipfs/${IMAGE_IPFS_CID}/image_${metadata.id}.svg`,
-    `https://gateway.pinata.cloud/ipfs/${IMAGE_IPFS_CID}/image_${metadata.id}.svg`,
-    `https://cloudflare-ipfs.com/ipfs/${IMAGE_IPFS_CID}/image_${metadata.id}.svg`,
-    `https://dweb.link/ipfs/${IMAGE_IPFS_CID}/image_${metadata.id}.svg`,
-  ];
-
-  // Use the first gateway by default
-  const [currentGatewayIndex, setCurrentGatewayIndex] = useState(0);
-  const ipfsImageUrl = ipfsGateways[currentGatewayIndex];
-
-  const handleImageError = () => {
-    // Try the next gateway if available
-    if (currentGatewayIndex < ipfsGateways.length - 1) {
-      setCurrentGatewayIndex(currentGatewayIndex + 1);
-    } else {
-      // If all gateways fail, show error
-      const target = document.querySelector(`#nft-image-${metadata.id}`);
-      if (target) {
-        target.innerHTML = `
-          <div style="padding: 1rem; text-align: center; color: #a0a0a0;">
-            Image not available
-          </div>
-        `;
-      }
-    }
-  };
+  // Use the image URL from metadata if available, otherwise construct it
+  const ipfsImageUrl =
+    metadata.image?.replace("ipfs://", "https://ipfs.io/ipfs/") ||
+    `https://ipfs.io/ipfs/${IMAGE_IPFS_CID}/image_${metadata.id}.svg`;
 
   return (
     <CardContainer isMinted={isMinted}>
       <NFTImageContainer>
         <img
-          id={`nft-image-${metadata.id}`}
           src={ipfsImageUrl}
           alt={`NFT #${metadata.id}`}
           style={{
@@ -446,7 +422,15 @@ const IPFSNFTCard: React.FC<NFTCardProps> = ({ metadata, isMinted }) => {
             padding: "1rem",
             backgroundColor: "rgba(0, 0, 0, 0.2)",
           }}
-          onError={handleImageError}
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = "none";
+            target.parentElement!.innerHTML = `
+              <div style="padding: 1rem; text-align: center; color: #a0a0a0;">
+                Image not available
+              </div>
+            `;
+          }}
         />
         {isMinted && <MintedOverlay>Minted</MintedOverlay>}
       </NFTImageContainer>
